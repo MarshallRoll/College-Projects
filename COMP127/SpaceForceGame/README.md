@@ -1,17 +1,17 @@
 # Space Force
 
-Space Force
+<img width="301" alt="space force game with asteroids" src="https://user-images.githubusercontent.com/89893290/163662892-b5ad1d0b-bc94-4703-b373-4f102dd64fd4.png">
 
-Marshall Roll, Curran Middleton, Ross Kogel
+Space Force is a game that lets users maneuver a spaceship around the screen while trying to avoid asteroids. Players get three lives, which are lost if the spaceship is hit by an asteroid. The goal is to survive as long as possible!
 
-Our initial project idea was to create a game called Space Force in which a spaceship flies around a screen, trying to survive for as long as possible by avoiding obstacles such as asteroids while simultaneously eliminating said obstacles. We ended up coding a simplified version of this original idea, but the development of the game we made still turned out to be extremely complex. 
-According to our original plan, there would be a series of oncoming asteroids that the spaceship would shoot, as well as a series of objects that would randomly fall from the sky. Both classes of objects would be life-threatening to the spaceship if they came in contact with it. The spaceship would have had three lives, a mechanic we kept. Also, we said the large asteroids would break off into two smaller asteroids once destroyed.
-Instead, we simplified the mechanics so that the only obstacle would be a series of asteroids floating randomly around the screen, increasing the asteroid count with each progressive level. We didn't keep the asteroids splitting up into smaller asteroids upon destruction but did add a small explosion animation/image to visually highlight the event. The spaceship moves and shoots lasers in four directions--up, down, left, right. The levels count up to infinity and the lives count down from three--that is, you get three chances to avoid crashing into the asteroids before the game is over and you can't advance any more levels. At the end of the game the last level you made it to is recorded.
-The file to run in this code is SpaceForceGame.java. This class runs and manages the canvas window, the game's interactive mechanics, and all the visual objects appearing on the screen and outlined in the other files. In its main method, it constructs a new SpaceForceGame in a new CanvasWindow, instantiating a few fundamental variables, and then calls the method run(), which in turn calls animate(). The animate method is essentially the cornerstone for updating the position of all objects on the canvas, and refers to most of the other objects on the canvas, including the asteroid, the laser, and the spaceship, for animating according to their respective rules.
-The Spaceship.java file contains a lot of the information pertaining to Spaceship objects, including the methods to move and update the position of the spaceship, the methods to move the spaceship to the other side of the canvas if it exits it, the method to rotate the spaceship, and the method to add it to the canvas. It manages the icon, the visual representation of the spaceship on the canvas.
-The SpaceLazer.java file does a similar thing for the laser, managing its movement and movement mechanics, its visual appearance on the screen, as well as whether it intersects an asteroid or not.
-The Asteroid.java file is the analog of the spaceship and space laser files, largely managing the movement of the asteroid, the visual appearance of the asteroid, and many other inherent traits of the asteroid.
-The AsteroidManager.java file is different from the Asteroid file in that it focuses on the asteroids' interactions with other classes such as the game and other objects. It determines what to do when an asteroid intersects a laser, what to do when it intersects a spaceship, and deals with the adding and subtracting of the asteroids from the game's canvas. It also deals with conditions such as the number of asteroids on the canvas. A lot of the interaction between the game's different objects is managed in SpaceForceGame, but this class handles more asteroid-centered code.
-The most challenging part of the project was organizing the code in a way that would make the project work--deciding which classes to divide the project into. Once we did that it was just a lot of logic and problem solving but figuring out which problems would be the easiest/most efficient to solve was definitely a challenge.
+#### File Download
 
-To move the spaceship, users can press W to move forward, A to move left, S to move right, D to move backward, and space bar to shoot. Users can move the spaceship around the screen, and when it goes off the edge it will reappear on the opposite side of the canvas.
+To play Space Force, download the zip file for the entire repository and open the SpaceForce folder in an IDE like VSCode. Run SpaceForceGame.java and a canvas object should pop up on the screen. 
+
+#### How to play
+
+To move the spaceship, users can press W to move forward, A to move left, S to move right, D to move backward, and space bar to shoot. Users can move the spaceship around the screen, and when it goes off the edge it will reappear on the opposite side of the canvas. Players have three lives, and if an asteroid hits the spaceship, players will lose a life and must replay the level. Lives left will be displayed at the end of every round.
+
+
+#### Acknowledgments
+Produced in collaboration with Curran Middleton & Ross Kogel. Thanks to Prof. Hillman for helping us along the way.
