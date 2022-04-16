@@ -14,6 +14,7 @@ import edu.macalester.graphics.ui.Button;
  * Macalester College
  * Professor Hillman
  * COMP-127
+ * 12/17/21 COMPLETED AND READY TO BE GRADED
  */
 public class SpaceForceGame {
     private static final int CANVAS_WIDTH = 650;
