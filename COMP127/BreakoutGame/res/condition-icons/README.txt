@@ -1,1 +1,0 @@
-Icons from https://openweathermap.org/weather-conditions
