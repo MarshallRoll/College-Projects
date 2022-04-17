@@ -6,6 +6,7 @@ Universities in the United States are traditionally very expensive, so cost acts
 
 
 ### Evaluating Financial Aid Efficacy
+----
 #### File Download
 
 Download the .rmd file in the "FinancialAidEfficacy_Linear" folder and open in RStudio or other compatible IDE.
@@ -17,6 +18,7 @@ The goal of this paper is to find the relationship between the average studentâ€
 
 
 ### Evaluating Financial Aid Efficacy Relative to the Federal Poverty Line
+----
 #### File Download
 
 Download the .rmd file in the "FinancialAidEfficacy_Logistic" folder and open in RStudio or other compatible IDE.
