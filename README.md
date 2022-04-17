@@ -13,6 +13,12 @@ Completed projects from various college classes. These include:
 
 ## Introduction to Statistical Modelling (STAT 155)
 
+#### Evaluating Financial Aid Efficacy
+* Project which seeks to find the relationship between the proportion of first generation students and the proportion of students receiving a Pell Grant to the average student’s family income at a given university. Uses linear regression modelling in R and the college scorecard dataset to obtain university-level data.
+
+#### Evaluating Financial Aid Efficacy Relative to the Federal Poverty Line
+* Project which seeks to find the relationship between the percent of first generation students and the percent of students receiving a Pell Grant to the odds of average family income being above the federal poverty line for a family of 4 ($26,200/year). Uses logistic regression modelling in R and the college scorecard dataset to obtain university-level data. 
+
 ## Introduction to Data Science (STAT 112)
 
 ## Linear Algebra (MATH 236)
