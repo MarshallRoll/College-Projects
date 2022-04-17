@@ -20,7 +20,14 @@ Completed projects from various college classes. These include:
 * Project which seeks to find the relationship between the percent of first generation students and the percent of students receiving a Pell Grant to the odds of average family income being above the federal poverty line for a family of 4 ($26,200/year). Uses logistic regression modelling in R and the college scorecard dataset to obtain university-level data. 
 
 ## Introduction to Data Science (STAT 112)
+*ongoing*
 
 ## Linear Algebra (MATH 236)
 
+#### Problem Sets
+* Various problem sets completed in RStudio to practice linear algebra concepts such as eigenvectors and eigenvalues, projection onto subspaces, Fourier Analysis, regression modeling, and stochastic matrices. 
+
 ## Core Concepts in Computer Science (COMP 123)
+
+#### Jeopardy
+* Game in which users play a 9-question trivia game, getting "money" for each question answered correctly in each of three different categories. After attempting all 9 questions, users will have to answer a "Final Jeopardy" question, deciding how much of their earnings to wager. Written in Python.
