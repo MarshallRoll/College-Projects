@@ -1,0 +1,287 @@
+---
+title: "Marshall Roll PS6"
+author: "Marshall Roll"
+date: "2/27/2021"
+output: html_document
+---
+
+```{r}
+require(pracma)
+```
+
+# 6.1
+
+e. Write a loop in R that starts with the vector v = c(1,0) (i.e., a rainy day vector) and applies the matrix A = cbind(c(1/2,1/2),c(1/10,9/10)) over and over again (100 times). Explain how your answer compares to the answer to the previous problem. 
+
+This is the same as the answer in the previous problems, stating that 100 days after a rainy day, there is a 1/6 chance of rain and a 5/6 chance of sun. 
+
+```{r}
+A = cbind(c(1/2,1/2),c(1/10,9/10))
+v = c(1,0)
+
+for (i in 1:100){
+  v= A %*% v
+}
+v
+```
+
+# 6.2 
+
+c. Find a matrix that makes sense to call $\sqrt{A}$. Then show that when you square this matrix, you really do get matrix $A$.
+
+```{r}
+K=cbind(c(-1/2,1),c(-1,1))
+U=cbind(c(sqrt(3),0),c(0,sqrt(5)))
+Kinv=solve(K)
+Kinv
+U
+```
+```{r}
+S = K %*% (U %*% Kinv)
+S %*% S
+```
+
+# 6.3 
+
+a. Without using the matrix $M$, compute $M^{10} \mathsf{v}$ where $\mathsf{v} = \begin{bmatrix}7\\3\\4\end{bmatrix}$. (That is, use only the eigen-information.)
+
+```{r}
+P = cbind(c(1,2,1),c(0,1,1),c(-1,1,0))
+Pinv = solve(P)
+Pinv
+```
+
+```{r}
+d1=cbind(c(1,0,0),c(0,0.349,0),c(0,0,0))
+v0=cbind(c(7,3,4))
+
+(P %*% (d1 %*% Pinv)) %*% v0
+```
+b. Describe all vectors $\mathsf{v}$, if there are any, such that $M^{n} \mathsf{v}  \to {\bf 0}$ as $n \to \infty$.
+
+```{r}
+d2=cbind(c(1,0,0),c(0,0,0),c(0,0,0))
+
+(P %*% (d2 %*% Pinv))
+```
+
+```{r}
+w1 = cbind(c(0,0,0))
+(P %*% (d2 %*% Pinv)) %*% w1
+w2 = cbind(c(1,3,4))
+(P %*% (d2 %*% Pinv)) %*% w2
+w3 = cbind(c(-1.7,-1.3,-3))
+(P %*% (d2 %*% Pinv)) %*% w3
+```
+Any vector of the form
+$\mathsf{v} = \begin{bmatrix}a\\b\\a+b\end{bmatrix}$
+will ensure that $M^{n} \mathsf{v}  \to {\bf 0}$ as $n \to \infty$.
+
+c.  Is it possible to reconstruct $M$ from the evidence given? If so, then do it!  If not, explain what further information is needed.
+
+$M=PDP^{-1}$ 
+```{r}
+d=cbind(c(1,0,0),c(0,.9,0),c(0,0,0))
+
+M = P %*% (d %*% Pinv)
+M
+```
+# 6.4
+
+```{r}
+F = cbind(c(57/50,4/50),c(-6/50,43/50))
+eigen(F)
+```
+a. If $r_0 = 10$ roadrunners and $c_0 = 15$ coyotes are introduced to the area, then give closed formulas for the population of coyotes $c_t$ and roadrunners $r_t$ after $t$ years.
+
+
+```{r}
+k=cbind(c(3,1),c(1,2),c(10,15))
+rref(k)
+```
+$Ax_t=(1.1)^{t}\mathsf{v_1}+7(0.9)^{t}\mathsf{v_2}$ 
+\
+
+$r_t=9(1.1)^{t}+7(0.9)^{t}$
+\
+
+$c_t=3(1.1)^{t}+14(0.9)^{t}$
+
+b. In the long-term, in this model, what is the ratio of roadrunners to coyotes?
+```{r}
+n=eigen(F)$vectors[,1]
+Re(n)/sum(Re(n))
+```
+The long run ratio is 3 roadrunners to 1 coyote. 
+
+c. When another college tried the same experiment in their Arboretum, they introduced $r_0 =  5$ roadrunners and $c_0 = 10$ coyotes and both populations died off (as is verified in the computation below). Explain why this happens using the eigenvalues and eigenvectors.
+
+```{r}
+r=cbind(c(3,1),c(1,2),c(5,10))
+rref(r)
+```
+
+Over time, the eigenvalue of 1.1 dominates the eigenvalue of 0.9, which eventually fades away to 0. In this instance, the initial distribution is completely dependent upon the eigenvalue of 0.9, which means that eventually, both coyotes and roadrunners will die off.
+
+# 6.5
+
+a. Use R to show that they have the same eigenvectors but different eigenvalues.
+```{r}
+(A = cbind(c(-8, 3, 29), c(-40, 24, 46), c(10, 3, 11)))
+(B = cbind(c(4, 3, 35), c(-49, 42, 55), c(13, 3, 26)))
+eigen(A)
+eigen(B)
+```
+b. Show that AB=BA (even though we know that, in general, matrices do not commute).
+
+```{r}
+A %*% B
+B %*% A 
+```
+c. Now let A and B be any nxn matrices which have the same eigenvectors. Prove that  AB = BA. Hint: use the diagonalization of these two matrices.
+
+$A = PD_1P^{-1}, B = PD_2P^{-1}$
+then 
+$AB = (PD_1P^{-1}) (PD_2P^{-1})$
+and
+$BA= (PD_2P^{-1})(PD_1P^{-1})$
+
+When these are multiplied, the innermost $P$ and $P^{-1}$ multiply to the identity, effectively cancelling each other out. This leaves 
+$AB = PD_1D_2P^{-1}$ and $BA = PD_2D_1P^{-1}$
+However, because diagonal matrices have all zero entries except in the forward diagonal, we know that they must commute in all instances. Therefore, $D_1$ and $D_2$ will always commute regardless of order and $AB$ = $BA$.
+
+
+# 6.6
+
+a. Give the meaning of the values 37, 64, 82, 0.06, 0.28, 0.16, 0.08 that appear in this matrix.
+
+6% of the fingerlings survive to yearlings, 28% of the yearlings survive to young adults, 16% of the young adults survive to adults 3-4, and 8% of adults survive to age 4-5. Fingerling populations per year are given by young adults giving birth to 37 fingerlings each, adults 3-4 giving birth to 64 fingerlings each, and adults 4-5 giving birth to 82 fingerlings each. 
+
+b. Compute the eigenvectors and eigenvalues of $L$ and relate what you find to population dynamics. In particular, use the eigen-information to
+
+* Give the overall population growth rate.
+The population is 93.7% of what it was the previous year, meaning that the growth rate declines by about 6.3% per year. We can see this from the real eigenvalue. 
+
+* Give the limiting age distribution: that is, the long-run distribution of the population into the different age categories. Give your answer as proportions which sum to 1.
+
+The long run distribution will be 92% fingerlings, 5.9% yearlings, 1.7% will be young adults, 0.3% adults age 3-4, and 0.25% age 4-5.
+
+```{r}
+T = cbind(c(0,.06,0,0,0),c(0,0,.28,0,0),c(37,0,0,.16,0),c(64,0,0,0,.08),c(82,0,0,0,0.00))
+
+eigen(T)
+v=eigen(T)$vectors[,1]
+v
+Re(v)
+Re(v)/sum(Re(v))
+```
+c. You are seeking funding from the Michigan DNR to support a cleanup effort. As part of your proposal, you argue that you believe that such a cleanup will most impact the youngest fish and will improve the survival rate of fingerlings to yearlings. Figure out (by trial and error) how high this survival rate will need to grow in order for the population to stop dying off. Justify your answer with eigenvalues and a plot. You should just be able to duplicate the code for the plot above (after changing the matrix).
+
+As can be seen in the graph below, a fingerling survival rate of ~7.4% will make it so that the population stops dying off. To find this, a real eigenvalue greater than one was needed, because this shows the growth rate of the population. Under the previous survival rate, the eigenvalue was ~0.93, which meant the fish were dying off. Now, the eigenvalue is slightly greater than one, which means that the population is stabilized.
+
+```{r}
+T1 = cbind(c(0,.074,0,0,0),c(0,0,.28,0,0),c(37,0,0,.16,0),c(64,0,0,0,.08),c(82,0,0,0,0.00))
+eigen(T1)
+```
+
+
+```{r,echo=FALSE}
+start = c(200,200,200,200,200)  # the starting distribution
+N = 60        # N is the number of iterations
+X = matrix(0,nrow=5,ncol=N)  #  Store the results in a 3 x N matrix called X
+X[,1] = start  # put start in the first column of X
+# loop N times and put your results in X
+for (i in 2:N) {X[,i] = T1 %*% X[,i-1]}
+# Then plot the results
+t = seq(1,N)  # time
+plot(t,X[1,],type='l',col=1,ylim=c(0,8000),ylab="population",xlab="time (year)",
+     main="Population in Age Group")
+for (i in 1:5) {
+  lines(t,X[i,],col=i)
+  points(t,X[i,],col=i,pch=20,cex=.8)}
+legend(22, 7600, legend=c("Fingerlings (0-1)", "Yearlings  (1-2)", "Young Adults (2-3)","Adults (3-4)","Adults (4-5)"), col=1:5, lty=1)
+```
+
+# 6.7
+
+a. Give a trajectory plot of this matrix using the trajectory_plot command from Dynamical Systems in 2D.
+
+```{r, echo=FALSE}
+get_traj <- function(mat, x0, num) {
+  traj = cbind(x0) 
+  num
+  for (i in 1:num) {
+    traj = cbind(traj, mat %*% traj[,dim(traj)[2]])
+    traj
+  }
+  return(traj)
+}
+
+plot_traj <- function(mat, x0, num) {
+  traj = get_traj(mat,x0,num)
+  points(traj[1,],traj[2,], pch=20, col=rainbow(length(traj)))
+}
+
+trajectory_plot <- function(mat, t=20, datamax=5, plotmax=10, numpoints=10, showEigenspaces=TRUE) {
+  # initialize plot
+  par(pty = "s")
+  plot(c(0),c(0),type="n",
+       xlim=c(-plotmax,plotmax),ylim=c(-plotmax,plotmax),
+       xlab='x', ylab='y')
+  abline(h=-plotmax:plotmax, v=-plotmax:plotmax, col="gray")
+  mygrid <- expand.grid(x=seq(from = -datamax, by = 2*datamax/numpoints, l = numpoints+1),
+                      y=seq(from =  -datamax, by = 2*datamax/numpoints, l = numpoints+1))
+  for (t in 1:dim(mygrid)[1]) {
+    plot_traj(mat,c(mygrid[t,1],mygrid[t,2]),t)
+  }
+  if (showEigenspaces) {
+    eigen = eigen(mat)
+    #mylabel = cat('lambda=', eigen$values[1], 'and lambda=', eigen$values[2])
+    #title(xlab=mylabel)
+    v1 = zapsmall(eigen$vectors[,1])
+    v2 = zapsmall(eigen$vectors[,2])
+    if (! class(v1[1]) == "complex") {
+      if (v1[1] == 0) {
+        abline(v=0)
+      } else {
+        abline(a=0,b=v1[2]/v1[1], col="blue")
+      } 
+      
+      if (v2[1] == 0) {
+        abline(v=0)
+      } else {
+        abline(a=0,b=v2[2]/v2[1], col="blue")
+      }   
+    }
+    
+  }
+}
+```
+
+```{r}
+A = cbind(c(0.9,0.1),c(-0.4,0.9))
+trajectory_plot(A, t=30, datamax=5, plotmax=8, numpoints=5)
+```
+
+b. Use R to find the eigenvalues and eigenvectors.
+```{r}
+eigen(A)
+```
+c. Write out the eigenvalues in the form $\lambda = a \pm b i$ and the eigenvectors in the form $\vec{v} = \vec{u} \pm \vec{w} i.$
+
+Eigenvalues: $\lambda = 0.9 \pm 0.2 i$
+Eigenvectors:$\vec{v_1} = 0.894$
+$\vec{v_2} = \pm 0.447 i.$
+
+d. Use this information to find the scaling factor $|\lambda|$ for this matrix and the angle of rotation $\arctan(b/a)$. Give your answer in degrees.
+```{r}
+vals = eigen(A)$values
+v1 = vals[1]
+Arg(v1) / (2*pi) * 360
+Mod(v1)
+```
+Argument = ~12.529 degrees, Modulus = ~0.922
+
+e. Compare your answers from part (c) to the plots above to confirm that the system is doing what the eigenvalues predict.
+
+The points in the trajectory plot spiral inward toward 0 at a somewhat slow rate in an ellipse, which indicates that the modulus of the complex eigenvalue is slightly less than 1 and that the argument is a relatively small number of degrees. This is confirmed by the complex eigenvalue, which has an argument of approximately 12.59 degrees and a modulus of approximately 0.922. 

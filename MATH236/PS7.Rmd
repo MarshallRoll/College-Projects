@@ -1,0 +1,431 @@
+---
+title: "Marshall Roll PS7"
+author: "Marshall Roll"
+date: "3/4/2021"
+output: html_document
+---
+
+```{r}
+require(pracma)
+```
+# 7.1
+
+```{r,message=FALSE, echo=TRUE}
+library(igraph)
+```
+
+
+Russian historians often attribute the dominance and rise to power of Moscow to its strategic position on medieval trade routes (see Figure 1). Others argue that sociological and political factors aided Moscow’s rise to power, and thus Moscow did not rise to power strictly because of its strategic location on the trade routes. The figure below shows the major cities and trade routes of medieval Russia.
+
+![](https://raw.githubusercontent.com/Tom-Halverson/math236_s21/main/images/MedievalRussia.png){width=100%}
+
+Use Gould’s Index to form a geographer's opinion about this debate. Either:
+
+* Moscow’s location was the primary reason for its rise to power, or 
+* Other forces must have come into play.
+
+Here is the adjacency matrix for this transportation network into an adjacency matrix and a plot of the network.
+```{r, networkRussia, fig.height=8, fig.width=8, echo=TRUE}
+RusCity = c("Novgorod", "Vitebsk", "Smolensk", "Kiev", "Chernikov",
+"Novgorod Severskij", "Kursk", "Bryansk", "Karachev", "Kozelsk",
+"Dorogobusch", "Vyazma", "A", "Tver", "Vishnij Totochek", "Ksyatyn",
+"Uglich", "Yaroslavl", "Rostov", "B", "C", "Suzdal", "Vladimir",
+"Nizhnij Novgorod", "Bolgar", "Isad'-Ryazan", "Pronsk", "Dubok",
+"Elets", "Mtsensk", "Tula", "Dedoslavl", "Pereslavl", "Kolomna",
+"Moscow", "Mozhaysk", "Dmitrov", "Volok Lamskij", "Murom")
+A = rbind(c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(1, 0, 
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 1, 0, 1, 0, 0, 
+    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0), c(0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0), c(0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 
+    0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 
+    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 
+    0, 1, 0, 0, 0, 0, 0), c(0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 
+    0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0), c(1, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 1, 0, 1, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 
+    0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    1), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1), c(0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 
+    0, 0, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0), c(0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0), c(0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 
+    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 
+    1, 0, 1, 0, 0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 
+    0, 0, 0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 
+    0), c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0), c(0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0), c(0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+g=graph_from_adjacency_matrix(A,mode='undirected')
+V(g)$label = RusCity
+# Plot network
+plot(g)
+```
+
+a. Create a vector containing the normalized Degree Centralities. See Section \@ref(degree-centrality) for help.
+
+```{r}
+# Get the dominant eigenvector
+B=A+diag(nrow(A))
+vecs = eigen(B)$vectors
+gould = vecs[,1]
+gould = gould/sum(gould)
+```
+
+```{r}
+v=rep(1,nrow(A)) # all 1s vector
+d = A %*% v  # degrees
+p=d/sum(d)   # proportion of degrees
+dp = cbind(d,p) # show d and p together side-by-side in a matrix
+rownames(dp) = RusCity
+colnames(dp) = c("degree","proportion")
+dp
+```
+
+a. Create a vector containing the Gould Index values. See Section \@ref(gould-index-summary) for help.
+
+```{r}
+Z = cbind(gould) 
+rownames(Z)=RusCity
+colnames(Z)=c('Gould')
+ii=order(gould,decreasing=TRUE)
+Z = Z[ii,]
+Z
+```
+
+
+a. Plot the network where the size of the vertices is determined by Gould's Index and the size of the label is determined by degree centrality.
+
+```{r, network9, fig.height=9, fig.width=9, echo=TRUE}
+B = A + diag(A)
+vecs = eigen(B)$vectors
+gould = vecs[,1]
+gould = gould/sum(gould)
+
+plot(g, vertex.size=400*gould,vertex.label.cex=30*p, vertex.color='tan1', vertex.frame.color="dodgerblue" )
+```
+
+a. Create a data frame that contains Gould's Index and Degree Centralities. The rows should be labeled with the city names and the columns should be named by the centrality measures.  Sort according to Gould's Index.
+
+```{r}
+Z = cbind(gould, p) 
+rownames(Z)=RusCity
+colnames(Z)=c('Gould','Degree')
+ii=order(gould,decreasing=TRUE)
+Z = Z[ii,]
+Z
+```
+
+a. Use Gould's Index to decide whether Moscow's dominance was solely due to its geographic location.
+
+Moscow has a somewhat high Gould Index, but not the highest. This means that its dominance was likely a result of sociological factors, since it was geogrpahically not the most well-connected city.
+
+a. Compare the Gould's Index and Degree Centrality rankings and note any interesting findings. See Section \@ref(step-5) for help.
+
+The degree centralities do not directly correlate with the Gould index because even if a place has a low degree centrality, it is possible that it is close to a place that has a high degree centrality, which would increase the Gould's Index. For example, Ksyatyn has a relatively high degree centrality, but it is not connected to other places with high Gould's index measurements. Therefore, it has a low Gould's index.          
+
+# 7.3
+
+Recall that a square $n \times n$ matrix is symmetric when $A^{\top} = A$. We learned that the eigenvectors of a symmetric matrix form an orthogonal basis of $\mathbb{R}^n$. In this problem, you will confirm that this holds for the following symmetric matrix
+$$
+A = 
+\begin{bmatrix}
+ 0 &  8 & 10 & -4 \\
+ 8 & 4 & 28 & 6 \\
+ 10 & 28 & 3 & -4 \\
+ -4 & 6 & -4 & -7
+\end{bmatrix}. 
+$$
+
+a. Find the eigenvalues and eigenvectors of $A$.
+```{r}
+A=cbind(c(0,8,10,-4),c(8,4,28,6),c(10,28,3,-4),c(-4,6,-4,7))
+eigen(A)
+```
+```{r}
+vecs = eigen(A)$vectors
+zapsmall(vecs)
+```
+
+b. Confirm that the eigenvectors returned by R are an orthonormal set (do this in a single calculation).
+
+```{r}
+vecs=eigen(A)$vectors
+zapsmall(t(vecs) %*% vecs) #Transpose of eigenvectors * eigenvectors
+```
+When the transpose of an orthonormal set is multiplied by the set, the result is the identity matrix. Thus, the set of eigenvectors is an orthonormal set.
+
+c. Express the vector $\mathsf{v} = \begin{bmatrix} 2 & -4 &  -9  & -2 \end{bmatrix}^{\top}$ as a linear combination of the eigenvectors. Use the fact that the eigenvectors are orthonormal. (Don't augment and row reduce.)
+
+```{r}
+w = cbind(c(2,-4,-9,-2))
+(coeffs = t(vecs) %*% w)
+vecs %*% coeffs
+```
+The above values represent the coefficients for $v_1$,$v_2$,$v_3$,and $v_4$, respectively. 
+
+d.  Let $P$ be the matrix of these normalized, orthogonal eigenvectors.
+Diagonalize $A$ using $P$. Just write out $A = P D P^{-1}$. Congratulations: you have **orthogonally diagonalized** the symmetric matrix $A$!
+
+```{r}
+(P = vecs) # eigenvectors normalized
+(D = cbind(c(36,0,0,0),c(0,9.898554,0,0),c(0,0,-5.868113,0), c(0,0,0,-26.030441))) #eigenvalue matrix 
+(Pinv = solve (P))
+
+zapsmall((P %*% (D %*% Pinv))) #checking to see if it yields A
+```
+
+**Turn in:** Your R code and the output for each part. For parts (c) and (d), you need to make it clear what your final answers are. 
+
+# 7.4
+
+(Directly copied Rmd file)
+
+Here we read in a csv file of voting data of the senate in the `109th US Congress (2007-2008). `This code also removes unanimous votes, which do not distinguish senators from one another.
+```{r,message=FALSE}
+library(readr)
+senate.vote.file = "https://raw.github.com/Tom-Halverson/math236_s21//main/data/SenateVoting109.csv"
+record <- read_csv(senate.vote.file, col_names = TRUE)
+votes<-as.matrix(record[,4:49]) # convert the votes to a matrix
+votes<-votes[,colSums(votes)!=99]  # remove the unanimous votes
+senators = record[,1:3]
+senators$index = seq(1,99)
+```
+
+We now have a table of senators, called `senators`, that includes their Name, Party, State, and Index in the list. If you scroll through here, you will see some familiar names.
+```{r}
+senators
+```
+We also have a 99x42 matrix of votes, where there are 99 senators (one of the NJ senators had resigned during this time) and 42 resolutions. The i-th row of the matrix is the voting record of senator i. Here are the first 5 rows. The votes are encoded as a sequence of 0s, 1s, and -1s, where 1 means a 'aye' vote, -1 means a 'nay' vote, and 0 means the senator abstained.
+```{r}
+dim(votes)
+votes[1:5,]  # show only the first 5 rows. 
+```
+
+The following helper code will extract the voting record from `votes` for a given senator by name.
+```{r}
+get_votes <- function(senator) {
+  votes[unlist(senators[senators$Name==senator,4]),]
+}
+```
+
+
+As you can see Joe Biden (D-DE), the current US president, was a senator in 2007. We can extract his voting record as follows. 
+```{r}
+biden = get_votes("Biden")
+biden
+```
+
+We can extract two senators and compute their dot product. Here we take the dot product of Joe Biden and Mitch McConnell (R-KY) as well as Joe Biden and Hillary Clinton (D-NY) and Biden with Biden.
+```{r}
+biden = get_votes("Biden")
+mcconnell  = get_votes("McConnell")
+clinton  = get_votes("Clinton")
+t(biden) %*% mcconnell
+t(biden) %*% clinton
+t(biden) %*% biden
+```
+### Question B
+
+The dot product above is always an integer. Explain what it counts. It is the number of something or possibly the difference of two things. 
+
+The dot product counts the number of votes that the senators agreed on minus the number of votes they disagreed on. 
+
+### Question A
+
+Write a function `cosine_similarity` that takes as input two vectors $\mathsf{u}$ and $\mathsf{v}$ and returns the value of $\cos(\theta)$ for the angle $\theta$ between $\mathsf{u}$ and $\mathsf{v}$. Below is a shell of the code that you need. Right now it always just returns 1.You need to fix that up. 
+
+
+```{r}
+cosine_similarity <- function(u,v) {
+  ulength = (u %*% u)^(1/2)
+  vlength = (v %*% v)^ (1/2)
+  cosine = dot(u,v)/(ulength %*% vlength)
+  return (cosine) #returns the cosine of theta, not theta
+}
+```
+
+Demonstrate that your code works on some vectors in $\mathbb{R}^5$. Use vectors that are orthogonal, closely aligned, and close to polar opposites.
+
+```{r}
+cosine_similarity(c(1,0,0,0,1),c(0,1,0,1,0))
+cosine_similarity(c(1,0.1,0,0,1),c(0,1,0,1,0))
+cosine_similarity(c(-6,-6,-4,100,-63),c(4,-3,9,-81,47))
+```
+
+### Question C
+
+Find the cosine similarity between every pair of the following senators:
+
+    + Hilary Clinton (D, NY), presidential candidate 2016
+    + John McCain (R, AZ), presidential candidate 2008
+    + Barack Obama (D, IL), president 2008-2016
+    + Susan Collins (R, ME), moderate Republican
+
+Does the cosine similarity pick up on the fact that Senator Collins is a "moderate Republican"?
+
+Yes because Collins has greater cosine similarity with the Democrats than she does with McCain, indicating that she is more centrist. 
+
+```{r}
+clinton = get_votes("Clinton")
+mccain = get_votes("McCain")
+obama = get_votes("Obama")
+collins = get_votes("Collins")
+
+cosine_similarity(clinton, mccain)
+cosine_similarity(clinton, obama)
+cosine_similarity(clinton, collins)
+cosine_similarity(obama, mccain)
+cosine_similarity(collins, mccain)
+cosine_similarity(collins, obama)
+
+```
+
+### Question D
+
+The senate majority leader of the 109th Congress was Bill Frist (R, TN). The senate minority leader was Harry Reid (D, NV). 
+
+    * Create a function  `classify_senator(senator)` that returns "R" or "D" depending on the cosine similarity of `senator` to `frist` and to `reid`. You will have to write [an "if ... else statement" (here is the syntax)](https://www.tutorialspoint.com/r/r_if_else_statement.htm).
+  
+    * Use the chunk below to do this.
+
+    * Then run use the code below to classify all the senators. Identify all senators that are *misclassified*, meaning that their votes are more similar to the leader of the opposing party. 
+    
+The chunk misclassifies Democrats Cantwell, Carper, Landrieu, Nelson1, Nelson2, Pryor, and Republicans Chafee, Collins, Snowe.
+
+    * Note: Jim Jeffords (I, VT) was a Republican who became and Independent in 2001 and then caucused with the Democrats. How does your classifier handle Jeffords?
+  
+Jeffords is classified as a Democrat.
+    
+```{r, echo=TRUE}
+# Implement this function!
+# return "R" if senator is closer to frist
+# return "D" if senator is closer to reid
+classify_senator <- function(senator) {
+
+  sen = get_votes(senator)
+  frist = get_votes("Frist")
+  reid = get_votes("Reid")
+  # use the your cosine_similarity method to compare sen with frist and reid
+  SenatorSimilarityRep = cosine_similarity(sen,frist)
+  SenatorSimilarityDem = cosine_similarity(sen,reid)
+
+  if (1-SenatorSimilarityDem>1-SenatorSimilarityRep){
+    val = "R"
+  }
+  else {
+    val = "D"
+  }
+  
+  return(val)
+ 
+}
+```
+
+Try it out after you get it working.
+
+```{r}
+classify_senator("Obama")
+classify_senator("Grassley")
+classify_senator("Cantwell")
+```
+
+This code will use your function, once it works, to classify all of the senators. 
+```{r}
+my_classification = rep(0,99)
+  for (i in 1:99) {
+    my_classification[i] = classify_senator(unlist(senators[i,1]))
+  }
+senators$my_classification = my_classification
+senators
+```
+
+# 7.5 
+
+(question done on paper)
+```{r}
+v=cbind(c(1,2,3,5,7))
+f1=cbind(c(1,0,1,1,2))
+f2=cbind(c(-9,7,-2,5,3))
+
+dot(v,f1)/dot(f1,f1)
+dot(v,f2)/dot(f2,f2)
+```
+```{r}
+p = 3.285714*(f1) + 0.2678571*(f2)
+p
+```
+```{r}
+r = cbind(c(0.125,0.125,0.25,0.375,-0.375))
+dot(r,r)
+```
+# 7.6
+
+```{r}
+Oinc = cbind(c(1,1,-1,1,1),c(1,0,1,0,1),c(2,2,1,1,1),c(7,11,-3,10,7))
+rref(Oinc)
+```
+```{r}
+O = cbind(c(1,1,-1,1,1),c(1,0,1,0,1),c(2,2,1,1,1))
+t(O) %*% O
+n = cbind(c(7,11,-3,10,7))
+t(O) %*% n
+```
+```{r}
+on=rbind(c(5,1,5,38),c(1,3,4,11),c(5,4,11,50))
+rref(on)
+```
+```{r}
+xhat=cbind(c(5,-2,3))
+O %*% xhat
+```
+

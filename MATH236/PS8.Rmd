@@ -1,0 +1,433 @@
+---
+title: "Marshall Roll PS8"
+author: "Marshall Roll"
+date: "3/8/2021"
+output: html_document
+---
+```{r}
+require(pracma)
+```
+
+
+## 8.1 Projection onto a subspace without an orthogonal basis
+
+Last week we learned how to project onto a subspace, but our method required that we have an orthogonal basis. Here we will see that our least-squares method allows us to project onto a subspace with any (not-necessarily-orthgoonal) basis. Consider the following subspace of $\mathbb{R}^4$. We can turn it into a least-squares problem by making it the column space of a matrix $A$. That is $W = Col(A)$.
+$$
+W = span\left\{
+\begin{bmatrix} 1 \\ 2 \\ -1 \\ -2 \end{bmatrix}, 
+\begin{bmatrix} 1 \\ 2 \\ 3 \\ 4 \end{bmatrix}, 
+\begin{bmatrix} 1 \\ 0 \\ 1 \\ 0 \end{bmatrix}
+\right\}, \hskip.6in
+b = \begin{bmatrix} 9 \\ 5 \\ 5 \\ 8 \end{bmatrix}.
+$$
+```{r}
+(A = cbind(c(1,2,-1,-2),c(1,2,3,4),c(1,0,1,0)))
+b = c(9,5,5,8)
+```
+
+
+a. Perform a matrix computation on A to show that the basis is not orthogonal. 
+```{r}
+t(A) %*% A
+```
+
+b. Show that b is not in W. 
+```{r}
+m = cbind(c(1,2,-1,-2),c(1,2,3,4),c(1,0,1,0),c(9,5,5,8))
+rref(m)
+```
+
+c. Find the least-squares projection of b onto W. Find both $\hat x$ and $\hat b$.
+```{r}
+(xhat = solve(t(A) %*% A, t(A) %*% b))
+(bhat = A %*% xhat)
+```
+
+d. Calculate the residual vector r, show that $r \in W^\perp$, and find $||r||$.
+```{r}
+(r = b - bhat)
+t(A) %*% r
+sqrt(t(r) %*% r)
+```
+
+e. Consider the following derivation from the normal equations:
+$$
+A^T A x = A^T b \qquad \Longrightarrow \qquad \hat x = (A^T A)^{-1} A^T b.
+$$
+The **pseudoinverse** is the matrix 
+$$
+A^+ = (A^T A)^{-1} A^T
+$$
+From what we see above it gives the *least-squares* solution to $A x = b$. Compute the matrix $A^+$, multiply it by $b$, and show that you get $\hat x$.
+
+```{r}
+aplus=(solve(t(A) %*% A)) %*% t(A)
+aplus
+aplus %*% b
+```
+
+f. Continuing this story,
+$$
+\hat b = A \hat x \qquad \Longrightarrow \qquad \hat b =  A (A^T A)^{-1} A^T b.
+$$
+The **projection** matrix onto the subspace $W$ is the matrix
+$$
+P = A (A^T A)^{-1} A^T.
+$$
+Compute the matrix $P$, apply it to $b$, and see that you get the projected value $\hat b$.
+
+```{r}
+p= A %*% (solve(t(A) %*% A)) %*% t(A)
+p
+p %*% b
+```
+
+g. Compute $P^2$ and compare it to $P$. Explain why this happens.
+```{r}
+p %*% p
+```
+$P^2$ is the same as $P$ because $P$ is already projecting onto the subspace, so applying $P$ again is the same. 
+
+h. Use it to project `b2 = c(1,2,3,4)` onto $W$.
+```{r}
+b2 = c(1,2,3,4)
+p %*% b2
+```
+
+i. Find the eigenvalues of $P$. They are nice. Explain (briefly) where the eigenvectors of this matrix are in relation to $W$.
+```{r}
+(eigen(p))
+```
+If the eigenvalues are zero, then the corresponding eigenvectors must have originally been orthogonal to W and are therefore in the orthogonal complement of W. If the eigenvalues are one, then the corresponding eigenvectors must be in the subspace W. 
+
+
+## 8.2 Least-squares polynomials
+
+Here is the problem that we discussed in class with a quadratic fit to it. Make a cubic, quartic, and quintic fit to this data. Turn in a plot of each. Comupute the length of the residual in each case. Which do you think is the best model of the data?
+
+The best model of the data is probably the quadratic because it shows the general trend of the data. Even though adding more variables makes the model fit the data better, it isn't very helpful for modelling because it makes the values negative, which isn't possible for many data sets. 
+
+```{r, echo=TRUE}
+x = c(1,2,3,4,5,6)
+y = c(7,2,1,3,7,7)
+(A = cbind(x^0,x,x^2))
+xhat = solve(t(A)%*%A,t(A)%*%y)
+yhat = A %*% xhat
+r = y - yhat
+sqrt(t(r) %*% r)
+```
+
+```{r ps8-quadplot, fig.width=4.5, fig.height=4.5, echo=FALSE}
+#plot the original set of points
+plot(x,y,pch=19,xlim=c(0,7),ylim=c(0,10), main='the best-fit quadratic function')
+# generate points for the fitted line and plot it
+tt = seq(0,7,len=100)  
+lines(tt,xhat[1]+xhat[2]*tt+xhat[3]*tt^2,col='blue')
+# add the residuals to the plot
+for (i in 1:length(x)) {
+  lines(c(x[i],x[i]),c(y[i],yhat[i]), col='red')
+}
+#add yhat to the plot
+points(x,yhat,pch=19,col='orange')
+#put the original points back on the plot last so we can see them 
+points(x,y,pch=19,col="black")
+grid()
+```
+
+
+```{r, echo=TRUE}
+x = c(1,2,3,4,5,6)
+y = c(7,2,1,3,7,7)
+(A = cbind(x^0,x,x^2,x^3))
+xhat = solve(t(A)%*%A,t(A)%*%y)
+yhat = A %*% xhat
+r = y - yhat
+sqrt(t(r) %*% r)
+```
+
+```{r ps8-cubplot, fig.width=4.5, fig.height=4.5, echo=FALSE}
+#plot the original set of points
+plot(x,y,pch=19,xlim=c(0,7),ylim=c(0,10), main='the best-fit cubic function')
+# generate points for the fitted line and plot it
+tt = seq(0,7,len=100)  
+lines(tt,xhat[1]+xhat[2]*tt+xhat[3]*tt^2+xhat[4]*tt^3,col='blue')
+# add the residuals to the plot
+for (i in 1:length(x)) {
+  lines(c(x[i],x[i]),c(y[i],yhat[i]), col='red')
+}
+#add yhat to the plot
+points(x,yhat,pch=19,col='orange')
+#put the original points back on the plot last so we can see them 
+points(x,y,pch=19,col="black")
+grid()
+```
+```{r, echo=TRUE}
+x = c(1,2,3,4,5,6)
+y = c(7,2,1,3,7,7)
+(A = cbind(x^0,x,x^2,x^3,x^4))
+xhat = solve(t(A)%*%A,t(A)%*%y)
+yhat = A %*% xhat
+r = y - yhat
+sqrt(t(r) %*% r)
+```
+
+```{r ps8-quartplot, fig.width=4.5, fig.height=4.5, echo=FALSE}
+#plot the original set of points
+plot(x,y,pch=19,xlim=c(0,7),ylim=c(0,10), main='the best-fit quartic function')
+# generate points for the fitted line and plot it
+tt = seq(0,7,len=100)  
+lines(tt,xhat[1]+xhat[2]*tt+xhat[3]*tt^2+xhat[4]*tt^3+xhat[5]*tt^4,col='blue')
+# add the residuals to the plot
+for (i in 1:length(x)) {
+  lines(c(x[i],x[i]),c(y[i],yhat[i]), col='red')
+}
+#add yhat to the plot
+points(x,yhat,pch=19,col='orange')
+#put the original points back on the plot last so we can see them 
+points(x,y,pch=19,col="black")
+grid()
+```
+
+```{r, echo=TRUE}
+x = c(1,2,3,4,5,6)
+y = c(7,2,1,3,7,7)
+(A = cbind(x^0,x,x^2,x^3,x^4,x^5))
+xhat = solve(t(A)%*%A,t(A)%*%y)
+yhat = A %*% xhat
+r = y - yhat
+sqrt(t(r) %*% r)
+```
+
+```{r ps8-quintplot, fig.width=4.5, fig.height=4.5, echo=FALSE}
+#plot the original set of points
+plot(x,y,pch=19,xlim=c(0,7),ylim=c(0,10), main='the best-fit quintic function')
+# generate points for the fitted line and plot it
+tt = seq(0,7,len=100)  
+lines(tt,xhat[1]+xhat[2]*tt+xhat[3]*tt^2+xhat[4]*tt^3+xhat[5]*tt^4+xhat[6]*tt^5,col='blue')
+# add the residuals to the plot
+for (i in 1:length(x)) {
+  lines(c(x[i],x[i]),c(y[i],yhat[i]), col='red')
+}
+#add yhat to the plot
+points(x,yhat,pch=19,col='orange')
+#put the original points back on the plot last so we can see them 
+points(x,y,pch=19,col="black")
+grid()
+```
+
+## 8.3 Fuel Efficiency
+
+Below is a classic data set of fuel efficiency in 38 different automobiles.
+```{r}
+MPG=c(16.9,15.5,19.2,18.5,30,27.5,27.2,30.9,20.3,17,21.6,16.2,20.6,20.8,18.6,18.1,17,17.6,16.5,18.2,26.5,21.9,34.1,35.1,27.4,31.5,29.5,28.4,28.8,26.8,33.5,34.2,31.8,37.3,30.5,22,21.5,31.9)
+lbs=c( 3967.6,3689.14,3280.55,3585.4,1961.05,2329.6,2093,2029.3,2575.3,2857.4,2543.45,3103.1,3075.8,2793.7,3294.2,3103.1,3494.4,3389.75,3599.05,3485.3,2352.35,2648.1,1797.25,1742.65,2429.7,1810.9,1942.85,2429.7,2361.45,2457,2325.96,2002,1838.2,1938.3,1992.9,2561.65,2366,1925)
+HP= c(155,142,125,150,68,95,97,75,103,125,115,133,105,85,110,120,130,129,138,135,88,109,65,80,80,71,68,90,115,115,90,70,65,69,78,97,110,71)
+Cyl=c(8,8,8,8,4,4,4,4,5,6,4,6,6,6,6,6,8,8,8,8,4,6,4,4,4,4,4,4,6,6,4,4,4,4,4,6,4,4)
+Car = c("BuickEstateWagon", "FordCountrySquireWagon", "ChevyMalibuWagon", "ChryslerLeBaronWagon", "Chevette", "ToyotaCorona", "Datsun510", "DodgeOmni", "Audi5000", "Volvo240GL", "Saab99GLE", "Peugeot694SL", "BuickCenturySpecial", "MercuryZephyr", "DodgeAspen", "AMCConcordD/L", "ChevyCapriceClassic", "FordLTD", "MercuryGrandMarquis", "DodgeStRegis", "FordMustang4", "FordMustangGhia", "MazdaGLC", "DodgeColt", "AMCSpirit", "VWScirocco", "HondaAccordLX", "BuickSkylark", "ChevyCitation", "OldsOmega", "PontiacPhoenix", "PlymouthHorizon", "Datsun210", "FiatStrada", "VWDasher", "Datsun810", "BMW320i", "VWRabbit")
+df = data.frame(cbind(lbs,HP,Cyl,MPG)) #Convert to data frame
+rownames(df)=Car
+df
+```
+
+a. Fit a linear model of the form
+$$
+mpg = a_0 + a_1 (lbs) + a_2 (HP) + a_3 (Cyl).
+$$
+
+```{r, echo=TRUE}
+x=1:length(MPG) 
+y = MPG
+(A = cbind(x^0,lbs,HP,Cyl))
+xhat = solve(t(A)%*%A,t(A)%*%y)
+yhat = A %*% xhat
+r = y - yhat
+(rLength = sqrt(t(r) %*% r))
+```
+
+Find the coefficients $a_0,a_1,a_2,a_3$ and the length of the residual. If you have taken Stat 155, you can see that we are doing the exact same thing by comparing your results with
+
+```{r}
+lm( MPG ~ lbs + HP + Cyl)
+```
+b. Add the cars weight in tons to your model and solve $mpg = a_0 + a_1 (lbs) + a_2 (HP) + a_3 (Cyl) + a_4 (tons).$ Compare the coefficients you get with those that you got in part a. Give a short explanation of what you see using some of the linear algebra language that we have learned in the course.
+
+The length of the residual decreases slightly, meaning that this model is a slightly better fit for the data. The rest of the coefficients remain fairly similar, meaning that tons does not offer unique information to this model. This makes sense because tons are a scalar    of pounds, as they both measure the car's weight but in different units. 
+```{r}
+tons =  c(1.98, 1.84, 1.64, 1.79, 0.98, 1.16, 1.05, 1.01, 1.29, 1.43, 1.27, 1.55, 1.54, 1.40, 1.65, 1.55, 1.75, 1.69, 1.80, 1.74, 1.18, 1.32, 0.90, 0.87, 1.21, 0.91,0.97, 1.21, 1.18, 1.23, 1.16, 1.00, 0.92, 0.97, 1.00, 1.28, 1.18, 0.96)
+
+A = cbind(x^0,lbs,HP,Cyl, tons)
+xhat = solve(t(A)%*%A,t(A)%*%y)
+xhat
+yhat = A %*% xhat
+r = y - yhat
+(rLength = sqrt(t(r) %*% r))
+```
+
+c. The residual vector $\mathsf{r}$ measures the quality of fit of our model. But how do we turn this into a meaningful quantity? One method is to look at the **coefficient of determination**, which is more commonly referred to as the "$R^2$ value." 
+
+* You can see the $R^2$ value of your fit in part (a) under the "Multiple R-squared" output in the linear model summary above. 
+
+* If $\mathsf{y} = [ y_1, y_2, \ldots, y_n ]^{\top}$ is our target vector with least-squares solution $\hat{\mathsf{y}} = A \hat{\mathsf{x}}$ and residual vector is $\mathsf{r} = \mathsf{y} - \hat{\mathsf{y}}$. Let 
+
+$$
+a = \frac{1}{n} ( y_1 + y_2 + \cdots + y_n)
+$$
+be the average or mean of the entries of target vector $\mathsf{y}$ and let $\mathsf{y}^* = [a, a, \ldots, a]$. (We call this vector "y star", so `ystar` would be a fine name in R.) The $R^2$ value is
+
+$$
+R^2 = 1 - \frac{\| \mathsf{y} - \hat{\mathsf{y}} \|^2 }{\| \mathsf{y} - \mathsf{y}^* \|^2} = 1 - \frac{\| \mathsf{r} \|^2}{\| \mathsf{y} - \mathsf{y}^* \|^2}.
+$$
+* The $R^2$ value is a number in $[0,1]$. The squared-length $|| \mathsf{y} -\mathsf{y}^*||^2$ is the total variance: that is, how much the data varies from the mean, and $\frac{\| \mathsf{r} \|^2}{\| \mathsf{y} - \mathsf{y}^* \|^2}$ tells us the fraction of the total variance that is explained by our model. Thus, if  $R^2$  is near 1, then our model does a good job at "explaining" the behavior of $\mathsf{y}$ via a linear combination of the columns of $A$. 
+
+ *   **To do**: Find the $R^2$ value for our least squares solution to the cars data in part (a). Here are some helpful functions:
+    + `mean(vec)` returns the mean (average) of the entries of the vector `vec`
+    + `rep(a, n)` creates a constant vector of length $n$ where every entry is $a$.
+    + `Norm(vec)` from the `pracma` package returns the magnitude (Euclidean length) of the vector `vec`.
+To learn more, you should take STAT 155: Introduction to Statistical Modeling.
+
+```{r}
+x=1:length(MPG) 
+y = MPG
+A = cbind(x^0,lbs,HP,Cyl)
+xhat = solve(t(A)%*%A,t(A)%*%y)
+yhat = A %*% xhat
+r = y - yhat
+rLength = sqrt(t(r) %*% r)
+ystar = rep(mean(y),length(y))
+top = Norm(r)^2
+bottom = Norm(y-ystar)^2
+(rsqrd = 1-(top/bottom))
+```
+
+## 8.4 Fourier Analysis
+
+In Fourier analysis one uses trigonometric functions to model oscillatory behavior in data. These methods have important applications in the study of sound or video signals, financial data, medicine, and engineering (to mention just a few). For example, consider the following set of 200 data points.
+```{r,echo=FALSE}
+t = xx = seq(0,19.9,.1)
+y = c(3.407646, 3.656257, 4.567893, 3.692689, 4.650019, 4.180795, 4.220037, 4.842083, 4.600134, 3.695645, 3.739377,
+4.807793, 4.290227, 4.351877, 4.659800, 4.706735, 4.603592, 4.657165, 5.135868, 4.486025, 4.644551, 4.624029,
+5.329163, 5.639380, 5.693772, 4.806000, 5.427808, 5.673742, 5.121300, 5.394885, 4.739374, 5.084819, 5.460250,
+4.578189, 4.612040, 4.534047, 4.201825, 4.290607, 3.887900, 3.349325, 3.660084, 3.200437, 2.490044, 2.720811,
+2.762054, 3.041436, 2.018788, 2.188567, 2.054767, 2.047622, 2.294727, 2.699933, 3.242642, 3.325224, 3.411680,
+2.590417, 3.118911, 2.916444, 3.081886, 4.100586, 4.210242, 3.835767, 3.546563, 4.456711, 3.970233, 4.128838,
+4.774915, 3.610540, 4.395443, 3.764436, 4.407476, 4.243399, 3.684473, 3.779193, 3.815080, 4.567609, 4.576654,
+4.774486, 4.847797, 3.970489, 4.631950, 4.535347, 5.292626, 4.844237, 5.243421, 4.949116, 4.824773, 4.830172,
+5.379016, 5.289537, 5.832770, 4.872205, 4.833122, 4.641696, 4.584196, 5.279393, 4.307142, 4.926093, 3.904820,
+3.748701, 3.460324, 3.726250, 3.636625, 3.896051, 3.505842, 2.723539, 3.432293, 2.788161, 2.873195, 2.347629,
+2.515592, 2.618861, 2.622653, 2.263514, 2.580999, 2.675959, 3.071311, 3.375476, 2.769042, 3.177973, 3.808895,
+3.088136, 3.101224, 3.828743, 4.070292, 4.477982, 3.982855, 4.213733, 4.396489, 4.036487, 4.475438, 4.534266,
+3.885322, 4.555555, 4.776902, 4.577201, 4.374555, 4.184732, 3.960706, 3.885492, 4.246883, 4.885794, 5.117945,
+4.213779, 4.734693, 5.359801, 4.680284, 5.586846, 4.995826, 5.074366, 4.647961, 4.935794, 5.074724, 5.092661,
+4.660553, 5.386633, 5.101599, 5.585815, 4.399249, 4.799980, 4.546865, 4.375893, 4.305302, 3.382458, 3.915698,
+2.980115, 3.711861, 3.260457, 2.493755, 2.267661, 2.994923, 2.447978, 2.093928, 2.379100, 2.836308, 2.904491,
+2.084674, 2.050629, 2.370026, 2.877150, 3.372492, 3.679573, 3.158224, 3.345067, 3.600110, 3.381230, 4.116003,
+3.785123, 4.519719, 3.966509, 3.808330, 4.551462, 3.838009, 3.758539, 3.816730, 4.618030, 3.926753, 4.593788,
+3.894390, 4.779126)
+plot(t,y,col="orange",xlim=c(0,20),ylim=c(2,6),pch=19)
+```
+
+A first Fourier approximation would fit a model of the form 
+$$
+f_1(t) = c_0 + c_1 \sin(t) + c_2 \cos(t).
+$$
+Thus, we make the following matrix (we show here only the first 10 rows; there are 200 rows).
+```{r}
+A = cbind(t^0, sin(t),cos(t))
+A[1:10,]
+```
+
+Now we solve the normal equations 
+```{r}
+(xhat = solve(t(A) %*% A, t(A) %*% y))
+```
+
+and plot the solution
+```{r,echo=FALSE}
+plot(t,y,col="orange",xlim=c(0,20),ylim=c(2,6),pch=19)
+tt = seq(0,20,len=1000)
+yy = xhat[1] + xhat[2]*sin(tt) + xhat[3]*cos(tt)
+points(tt,yy,type='l',col="blue")
+```
+Your task:
+
+a. Update this to add the second Fourier coefficient terms by fitting the following function to the data. Plot your result.
+$$
+f_2(t) = c_0 + c_1 \sin(t) + c_2 \cos(t) + c_3 \sin(2t) + c_4 \cos(2t)
+$$
+```{r}
+A2 = cbind(t^0, sin(t),cos(t),sin(2*t),cos(2*t))
+(xhat2 = solve(t(A2) %*% A2, t(A2) %*% y))
+```
+
+```{r,echo=FALSE}
+plot(t,y,col="orange",xlim=c(0,20),ylim=c(2,6),pch=19)
+tt2 = seq(0,20,len=1000)
+yy2 = xhat2[1] + xhat2[2]*sin(tt2) + xhat2[3]*cos(tt2) + xhat2[4]*sin(2*tt2) + xhat2[5]*cos(2*tt2)
+points(tt2,yy2,type='l',col="blue")
+```
+
+b. Compute the length of the residul vector for both the $f_1(t)$ and the $f_2(t)$ model. Which approximation looks better visually. That is, does the second approximation capture more of the shape of the data, or do you think that the first is a better model?
+
+```{r}
+yhat = A %*% xhat
+r1 = y - yhat
+Norm(r1)
+
+yhat2 = A2 %*% xhat2
+r2= y -yhat2
+Norm(r2)
+```
+
+The second model is better because it both visually fits the data better and has a smaller residual length. 
+
+## 8.5 Global Fossil Fuel Emissions
+
+
+Below is a plot of global fossil fuel emmissions between 1751 and 1998 measured in megatons of carbon. 
+
+```{r sqemission, echo=TRUE}
+year=c(1751:1998)
+emissions = c(3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 7, 7, 7, 8, 8, 10, 9, 9, 9, 10, 10, 10, 10, 10, 11, 11, 11, 11, 12, 13, 14, 14, 14, 14, 14, 15, 16, 16, 17, 17, 18, 18, 18, 24, 23, 23, 24, 24, 25, 29, 29, 30, 31, 33, 34, 36, 37, 39, 43, 43, 46, 47, 50, 54, 54, 57, 59, 69, 71, 76, 77, 78, 83, 91, 95, 97, 104, 112, 119, 122, 130, 135,
+142, 147, 156, 173, 184, 174, 188, 191, 194, 196, 210, 236, 243, 256, 272, 275, 277, 281, 295, 327, 327, 356, 372, 374, 370, 383, 406, 419, 440, 465, 507, 534, 552, 566, 617, 624, 663, 707, 784, 750, 785, 819, 836, 879, 943, 850, 838, 901, 955, 936, 806, 932, 803, 845, 970, 963, 975, 983, 1062, 1065, 1145, 1053, 940, 847, 893, 973, 1027, 1130, 1209, 1142, 1192, 1299, 1334, 1342, 1391, 1383, 1160, 1238, 1392, 1469, 1419, 1630, 1767, 1795, 1841, 1865, 2043, 2177, 2270, 2330, 2463, 2578, 2595, 2701, 2848, 3009, 3146, 3306, 3412, 3588, 3802, 4075, 4227, 4394, 4633, 4641, 4613, 4879, 5018, 5078, 5368, 5297, 5125, 5080, 5067, 5241, 5405, 5573, 5701, 5926, 6035, 6096, 6186, 6089, 6090, 6236, 6378, 6530, 6628, 6608)
+plot(year,emissions,pch=20,cex=.7,col="red")
+```
+
+The data suggest that the fossil fuel emissions $f$ follow an exponential model with respect to the year $y$:
+$$f = a e^{k(y-1750)},$$
+where $a$ and $k$ are the unknown constants. This model is not linear in the unknowns $a$ and $k$, but (this is a great idea!) it becomes linear if we take the logarithm of both sides. Doing so yields the following linear system:
+$$\log(f)=\log(a)+k(y-1750).$$
+
+* **Note:** This process works for any logarithm, but it is common to use the natural logarithm (use `log()` in R).
+* **Note:** To simplify even further,  we will define `time=year-1750` so that time represents years after 1750. 
+
+This results in the model
+
+$$ \log(f)=d+kt,$$
+where $d=\log(a)$ and $t$ is time (since 1750), 
+
+Your task: Use least-squares projection to find the best fitting exponential function for this data. This will give you the values for $d$ and $k$, and once you know $d$, you can find $a = \exp(d)$. We have started the code for you by defining `x=year-1750` and `y=log(emissions)`.
+
+```{r, echo=TRUE}
+### your code goes here. 
+# be sure to define d and k and A
+t=year-1750
+y=log(emissions)
+A=cbind(t^0,t)  
+xhat = solve(t(A) %*% A, t(A) %*% y)
+d=xhat[1]
+k=xhat[2]
+#####
+# your code above has found b and k
+(a = exp(d))
+k
+```
+
+
+Run the code below to plot the original data along with your exponential model curve $f(t)$. **Note:** This code assumes that you have already defined the values for `k` and `a`. Otherwise, it will not work!
+
+
+```{r, echo=TRUE}
+  f=function(y){a * exp(k*(y-1750))}
+  plot(year,f(year),type="l",lwd=3,ylim=c(0,10000),ylab="emissions", main="best fit exponential function")
+  points(year,emissions,pch=20,cex=.7,col="red")
+```
