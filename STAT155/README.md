@@ -1,12 +1,11 @@
-## Introduction to Statistical Modelling (STAT 155)
+# Introduction to Statistical Modelling (STAT 155)
 
 #### Background
 
 Universities in the United States are traditionally very expensive, so cost acts a barrier to higher education for many prospective students. Several programs, such as the Pell Grant, aim to provide financial aid to students from low-income families to decrease the cost of attending these institutions. Furthermore, these programs are designed to allow first-generation students to have better educational opportunities.
 
 
-### Evaluating Financial Aid Efficacy
-----
+## Evaluating Financial Aid Efficacy
 #### File Download
 
 Download the .rmd file in the "FinancialAidEfficacy_Linear" folder and open in RStudio or other compatible IDE.
@@ -17,8 +16,7 @@ The goal of this paper is to find the relationship between the average studentâ€
 
 
 
-### Evaluating Financial Aid Efficacy Relative to the Federal Poverty Line
-----
+## Evaluating Financial Aid Efficacy Relative to the Federal Poverty Line
 #### File Download
 
 Download the .rmd file in the "FinancialAidEfficacy_Logistic" folder and open in RStudio or other compatible IDE.
