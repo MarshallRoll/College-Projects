@@ -1,0 +1,226 @@
+---
+title: "Project 2: Evaluating Financial Aid Efficacy"
+author: "Deshaun Omane, Ani Gribbin, Marshall Roll"
+date: "11/3/2021"
+output: html_document
+---
+<!--- Begin styling code. --->
+<style type="text/css">
+/* Whole document: */
+body{
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 12pt;
+}
+h1.title {
+  font-size: 38px;
+  text-align: center;
+}
+h4.author {
+  font-size: 18px;
+  text-align: center;
+}
+h4.date {
+  font-size: 18px;
+  text-align: center;
+}
+</style>
+<!--- End styling code. --->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages, echo = FALSE, warning = FALSE, message=FALSE}
+library(broom)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(reactable)
+library(tidyverse)
+```
+
+```{r, echo = FALSE}
+# Omitting values of NA
+scorecard <-read.csv("scorecard.csv") 
+scorecard <- scorecard %>% 
+  na.omit()
+```
+
+# Introduction
+
+
+### Background
+
+Universities in the United States are traditionally very expensive, so cost acts a barrier to higher education for many prospective students. Several programs, such as the Pell Grant, aim to provide financial aid to students from low income families to decrease the cost of attending these institutions. Furthermore, these programs are designed to allow first-generation students to have better educational opportunities. The goal of this paper is to find the relationship between the average student’s family income at a given university and the proportion of first generation students and students receiving a Pell Grant at that university. If programs like the Pell Grant are effective, we expect universities with a higher population of first generation and Pell-recipient students to have lower average family incomes. 
+
+### Research Questions
+
+We endeavor to find the relationship between the proportion of first generation students and the proportion of students receiving a Pell Grant to the average student’s family income at a given university. The motivation underlying this question is to determine the efficacy of financial aid programs. Thus, the outcome variable is average family income, to determine if aid is directed toward the families most in need. We use the proportion of Pell Grant recipients by institution as a predictor variable to measure one common form of financial aid. We also use the proportion of first generation students as a predictor variable, as many financial aid recipients are students whose families did not attend college or other higher education.
+
+# Data
+
+### Context
+
+This project uses the scorecard dataset which provides students and families with in-depth information about how well post-secondary institutions set students up for success. Within the dataset, each case represents a post-secondary institution in the United States. There are 93 variables addressed that outline how well each institution functions and what it gives to its students. The variables specifically highlighted in this project represent the proportion of first generation students, average family income, and the proportion of students that receive the Pell grant at each institution respectively. The dataset was compiled through analysis of institutions' federal reports, financial aid data, and tax information and was collected by the United States department of education. The goal of this dataset is to give students and their families the ability to make educated decisions when considering the costs and benefits that come with attending each post-secondary institution. The data can be found on the Department of Educations scorecard website at https://collegescorecard.ed.gov/data/.
+
+
+### Cleaning
+
+We omitted values of NA, where data was either not collected or was unavailable. This leaves 2947 universities in the dataset.
+
+# Model
+
+### Exploratory Data Analysis
+
+
+```{r, echo = FALSE}
+# Fitting linear regression model
+mod <- lm(FAMINC ~ FIRST_GEN + PCTPELL, data = scorecard)
+```
+
+```{r, echo = FALSE}
+# Data visualization of PCTPELL, FIST_GEN, & FAMINC
+scorecard %>%
+  ggplot(aes(x = FIRST_GEN, y = FAMINC, color = PCTPELL)) + 
+  geom_point() + 
+    labs(x = "Proportion of First Generation Students", y = "Average Family Income ($)",   title = "Average Family Income by Proportion of First Generation\nStudents and Percent Pell Recipients", color = "Proportion of Students\nReceiving Pell Grants\n", caption = "Scatterplot with average family income in real 2015 dollars by university on the y-axis,\nproportion of first generation students by university on the x-axis, and percentage of\nundergraduate students receiving a Pell Grant by university represented on color scale ") +  
+    scale_colour_gradient(
+    low = "#FF5733",
+    high = "#7600DC",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "colour"
+) + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(legend.title = element_text(hjust = 0.5)) + 
+  theme(plot.caption = element_text(hjust = 0.5))
+
+
+```
+
+
+The above figure shows the relationship between average family income and the proportion of first generation students and Pell-receiving students across all institutions for which data is available. A generally linear trend can be observed between first generation population and family income---universities with higher average family incomes tend to have a smaller share of first generation students than those with lower average family incomes. Furthermore, universities with a lower average family income tend to have a larger share of students receiving a Pell Grant, as can be seen due to the darkening of the color scale as family income decreases along the vertical axis. 
+
+### Model Creation
+
+The linear regression model presented below predicts average family income based on the proportion of first-generation students at the institution and proportion of students that receive the Pell Grant. Average family income was chosen as the outcome variable because it gives insight into the social status of the families of students who attend each institution. Proportion of first-generation students and proportion of Pell Grant recipients were both used as predictor variables in this model as they are both typically related to family income. We chose these predictor variables because we believe that students with lower family incomes are more likely to be awarded Pell Grants, and first-generation students are more likely to have relatively low family incomes. Alternatively, a logistic regression model could have been used instead of linear regression. However, in the context of the scorecard data, the logistic regression model would give us the probability of an institution having a certain average family income based on the two predictor variables. This data would not provide us with any useful information or insight into post-secondary institutions, making the multiple linear regression model a better option. 
+
+$$E[FamilyIncome | FirstGen, PellGrant] = \beta_0 + \beta_1 FirstGen + \beta_2 PellGrant$$
+
+### Fitted Model
+
+```{r, echo = FALSE}
+# Data table showing statistics for linear model
+#### Uses reactable package
+data_table <- matrix(c(121022.16, "[119455.3,
+                       122589]", "0", -151956.55, "[-156011.3,
+                       -147901.8]",	"0", -29026.01, "[-31733.95, -26318.07]", "1.092478e-95"), ncol = 3, byrow = TRUE)
+colnames(data_table) <- c("Estimate", "95% Confidence Interval", "P-value")
+rownames(data_table) <- c("Intercept", "FirstGen", "PellGrant")
+reactable(
+  data_table,
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 70,
+    headerStyle = list(background = "#f7f7f8")
+  ),
+  columns = list(
+    Species = colDef(minWidth = 140)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  theme = reactableTheme(
+    style = list(fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,     Helvetica, Arial, sans-serif"),
+  )
+)
+```
+
+
+### Model Interpretation 
+
+The model predicts that average family income declines as the share of Pell-Grant receiving students and first-generation students increases as can be seen from the negative slope values. Our model predicts that if the share of first-generation students at a university were to increase by 10% holding Pell-receiving students constant, the expected average family income would decrease by about \$15,000. Our model also predicts that if the share of students who receive Pell Grants increases by 10% holding first-generation students constant, the expected average family income would decrease by approximately \$2,900. Therefore, our model suggests that the share of first-generation students at a university has a larger effect on predicted average family income than the proportion of Pell-receiving students. However, the overall model predicts that universities with high shares of both Pell-receiving and first-generation students have lower expected average family incomes than those with a lower share. 
+
+### Model Evaluation
+
+Our model is a good fit for the data because it shows a fairly straight negative relationship between family income and the proportion of first-generation students and Pell Grant receiving students. The spread is also relatively equal across our proportion of first-generation students, Pell-receiving students, and family income values. There are no extreme outliers in the model; the only data point that may be considered an outlier is the purple point to the far right of our model visualization at a proportion of about .85  first generation students and just under $25,000 in average family income. Our r-squared value of this model, 0.746, indicates that our linear regression model is a relatively strong fit for our data set. Overall, we are relatively confident in our model due to the fairly strong r-squared value, low spread, and lack of outliers.
+
+# Conclusions
+
+### General Takeaways
+
+Our research question revolves around the effectiveness of financial aid programs at post- secondary institutions.The model created analyzes this by predicting average family income based on the proportion of students that receive the Pell Grant and proportion of first-generation students who attend the institution. Our model shows that there is a fairly strong negative correlation between the proportion of first generation students and percentage of students who receive a Pell Grant to average family income at a given institution. Though there may not be any conclusive evidence, our model does predict that, on average, post-secondary institutions with larger fractions of first generation students and Pell Grant recipients have lower average family incomes. The conclusion we can draw from this is that in general, financial aid programs are generally effective at post-secondary institutions and support typically goes to the students that need it most.
+
+### Limitations
+
+To better determine whether financial aid is reaching those who need it most, we should look at data collected on an individual level rather than the student body of a university as a whole. Ideally, we could look at students from one university and create binary variables for students who receive Pell Grants and first-generation students. Then, we could create some sort of logistic regression model to predict whether the family income is above or below a certain threshold or whether the student is receiving financial aid. 
+
+Also, there may be some overlap between PCTPELL and FIRST_GEN in the data set. It is possible that some students who receive a Pell Grant are also first generation students and our model fails to take this into account. Furthermore, not all first generation students may need financial aid, as it depends on each family’s situation. Similarly, not all students with low family income need financial assistance, as income does not necessarily equate to wealth.
+
+# Code Appendix
+```{r, eval=FALSE}
+# Loading packages
+library(broom)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(reactable)
+library(tidyverse)
+
+# Omitting values of NA
+scorecard <-read.csv("scorecard.csv") 
+scorecard <- scorecard %>% 
+  na.omit()
+
+# Fitting linear regression model
+mod <- lm(FAMINC ~ FIRST_GEN + PCTPELL, data = scorecard)
+
+# Data visualization of PCTPELL, FIST_GEN, & FAMINC
+scorecard %>%
+  ggplot(aes(x = FIRST_GEN, y = FAMINC, color = PCTPELL)) + 
+  geom_point() + 
+    labs(x = "Proportion of First Generation Students", y = "Average Family Income ($)",   title = "Average Family Income by Proportion of First Generation\nStudents and Percent Pell Recipients", color = "Proportion of Students\nReceiving Pell Grants\n", caption = "Scatterplot with average family income in real 2015 dollars by university on the y-axis,\nproportion of first generation students by university on the x-axis, and percentage of\nundergraduate students receiving a Pell Grant by university represented on color scale ") +  
+    scale_colour_gradient(
+    low = "#FF5733",
+    high = "#7600DC",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "colour"
+) + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(legend.title = element_text(hjust = 0.5)) + 
+  theme(plot.caption = element_text(hjust = 0.5))
+
+# Data table showing statistics for linear model
+#### Uses reactable package
+data_table <- matrix(c(121022.16, "[119455.3,
+                       122589]", "0", -151956.55, "[-156011.3,
+                       -147901.8]",	"0", -29026.01, "[-31733.95, -26318.07]", "1.092478e-95"), ncol = 3, byrow = TRUE)
+colnames(data_table) <- c("Estimate", "95% Confidence Interval", "P-value")
+rownames(data_table) <- c("Intercept", "FIRST_GEN", "PCTPELL")
+reactable(
+  data_table,
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 70,
+    headerStyle = list(background = "#f7f7f8")
+  ),
+  columns = list(
+    Species = colDef(minWidth = 140)  
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  theme = reactableTheme(
+    style = list(fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,     Helvetica, Arial, sans-serif"),
+  )
+)
+
+```
+

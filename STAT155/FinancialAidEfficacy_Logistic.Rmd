@@ -1,0 +1,307 @@
+---
+title: "Project 3: Evaluating Financial Aid Efficiency Relative to the Federal Poverty Line"
+author: "Marshall Roll, Ani Gribbin, Deshaun Omane"
+date: "12/6/2021"
+output: html_document
+---
+<!--- Begin styling code. --->
+<style type="text/css">
+/* Whole document: */
+body{
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 12pt;
+}
+h1.title {
+  font-size: 38px;
+  text-align: center;
+}
+h4.author {
+  font-size: 18px;
+  text-align: center;
+}
+h4.date {
+  font-size: 18px;
+  text-align: center;
+}
+</style>
+<!--- End styling code. --->
+
+```{r install-packages, echo = FALSE, warning = FALSE, message=FALSE}
+library(broom)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(reactable)
+```
+
+```{r read-csv, echo = FALSE}
+scorecard <- read.csv("scorecard.csv")
+```
+# Introduction 
+
+### Background
+
+Universities in the United States are traditionally very expensive, so cost acts a barrier to higher education for many prospective students. Several programs, such as the Pell Grant, aim to provide financial aid to students from low-income families to decrease the cost of attending these institutions. Furthermore, these programs are designed to allow first-generation students to have better educational opportunities. The goal of this paper is to determine whether financial aid programs direct funds to students who need it the most. If programs like the Pell Grant are effective, we expect universities with a higher percent of first-generation and Pell-recipient students to have higher odds of having average family incomes below the poverty line. 
+
+### Research Questions
+
+We endeavor to find the relationship between the percent of first generation students and the percent of students receiving a Pell Grant to the odds of average family income being above the federal poverty line for a family of 4 ($26,200/year). The motivation underlying this question is to determine the efficacy of financial aid programs. Thus, the outcome variable, the odds of average family income being above the poverty line, helps to determine if aid is directed toward families most in need. We use the percent of Pell Grant recipients by institution as a predictor variable to measure one common form of financial aid. We also use the percent of first generation students as a predictor variable, as many financial aid recipients are students whose families did not attend college or other higher education.
+
+# Data
+
+### Context
+
+This project uses the scorecard dataset which provides students and families with in-depth information about how well post-secondary institutions set students up for success. Within the dataset, each case represents a post-secondary institution in the United States. There are 93 variables addressed that outline how well each institution functions and what it gives to its students. The variables specifically highlighted in this project are FIRST_GEN, FAMINC, and PCTPELL which represent the proportion of first generation students, average family income, and the proportion of students that receive the Pell grant at each institution respectively. The dataset was compiled through analysis of institutions' federal reports, financial aid data, and tax information and was collected by the United States department of education. The goal of this dataset is to give students and their families the ability to make educated decisions when considering the costs and benefits that come with attending each post-secondary institution. The data can be found on the Department of Educations scorecard website at https://collegescorecard.ed.gov/data/.
+
+### Cleaning 
+
+We omitted values of NA, where data was either not collected or was unavailable. This leaves 2947 universities in the dataset. Then, we used the mutate function in R to create a binary poverty line (POVLINE) variable. If average family income at a university is above $26,200, the POVLINE variable is 1, and if the average family income is below this threshold, the POVLINE variable for the university is assigned 0. Additionally, PCTPELL and FIRST_GEN were multiplied by 100 to give percentages rather than proportions.
+
+```{r mutate-data, echo = FALSE}
+scorecard <- scorecard %>%
+  mutate(FAMINC, POVLINE = ifelse(FAMINC > 26200, 1, 0))
+scorecard <- scorecard %>%
+  mutate(PCTPELL = PCTPELL * 100)
+scorecard <- scorecard %>%
+  mutate(FIRST_GEN = FIRST_GEN * 100)
+
+```
+
+# Model
+
+### Exploratory Data Analysis
+```{r data-visualization, warning = FALSE, echo = FALSE}
+scorecard %>%
+  ggplot(aes(x = FIRST_GEN, y = FAMINC, color = PCTPELL)) + 
+  geom_point() + 
+  annotate("text", x = 80, y = 32000, label = "Poverty Line", size = 3.25) +
+  geom_hline(yintercept=26200) +
+  labs(x = "Percent of First Generation Students", y = "Average Family Income ($)",   title = "Average Family Income by Percent of First Generation\nStudents and Percent Pell Recipients", color = "Percent of Students\nReceiving Pell Grants\n", caption = "Scatterplot with average family income in real 2015 dollars by university on the y-axis,\nproportion of first generation students by university on the x-axis, and percentage of\nundergraduate students receiving a Pell Grant by university represented on color scale.\n The federal poverty line for a family of four is ($26,200 annual income) is shown.") +
+    scale_colour_gradient(
+    low = "#FF5733",
+    high = "#7600DC",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "colour"
+) + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(legend.title = element_text(hjust = 0.5)) + 
+  theme(plot.caption = element_text(hjust = 0.5))
+
+```
+
+The above figure shows the relationship between average family income and the proportion of first generation students and Pell-receiving students across all institutions for which data is available. A generally linear trend can be observed between first generation population and family income---universities with higher average family incomes tend to have a smaller share of first generation students than those with lower average family incomes. Furthermore, universities with a lower average family income tend to have a larger share of students receiving a Pell Grant, as can be seen due to the darkening of the color scale as family income decreases along the vertical axis. Below the poverty line, universities tend to have a larger share of Pell-receiving students than above it.
+
+### Model Creation
+
+The logistic regression model presented below predicts whether the average family income at a post-secondary institution is above or below the poverty line based on the percemt of first-generation students and percent of Pell Grant recipients at the respective institution. Average family income is the outcome variable because it gives insight into the social status and backgrounds of the families of students who attend each institution. Percent of first-generation students and percent of Pell Grant recipients are both used as predictor variables in this model as they are both naturally related to family income. These specific predictor variables were chosen because we believe that students with lower family incomes are more likely to be awarded Pell Grants, and first-generation students are more likely to have relatively low family incomes. Alternatively, a linear regression model could be used instead of a logistic regression to predict what the average family income will be at an institution based on the same predictor variables. 
+
+$$log(Odds[AbovePovLine = 1|FirstGen, PellGrant]) = \beta_0 + \beta_1 FirstGen + \beta_2 PellGrant$$
+
+### Fitted Model
+
+```{r regression-model, echo = FALSE, include = FALSE}
+mod <- scorecard %>%
+  with(glm(POVLINE ~ FIRST_GEN + PCTPELL))
+
+mod %>%
+  coef() %>%
+  exp()
+```
+
+``` {r data-table, echo = FALSE}
+data_table <- matrix(c(466.73404, "[447.47849,
+                       868.1818]", "0", 24.6687, "[22.11886,
+                       27.50840]",	"3.490981e-128", 60.87896, "[56.60361, 65.47723]", "1.059726e-39"), ncol = 3, byrow = TRUE)
+colnames(data_table) <- c("Estimate (exponentiated)", "95% Confidence Interval (exponentiated)", "P-value")
+rownames(data_table) <- c("Intercept", "FirstGen", "PellGrant")
+reactable(
+  data_table,
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 70,
+    headerStyle = list(background = "#f7f7f8")
+  ),
+  columns = list(
+    Species = colDef(minWidth = 140)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  theme = reactableTheme(
+    style = list(fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,     Helvetica, Arial, sans-serif"),
+  )
+)
+```
+### Model Interpretation
+
+The exponentiated slope estimate for the first-generation student predictor variable is 24.67. This value represents the predicted multiplicative change of odds of average family income being above the poverty line associated with a one percent change in share of first-generation students at a college when the percentage of undergraduates receiving a Pell Grant is held constant. Our confidence interval indicates that we are 95% confident that the exponentiated slope value for the first-generation predictor variable exists between 22.12 and 27.51.  The p-value of 3.490981e-128 is less than 0.05, which indicates that we reject the null hypothesis for this variable (share of first-generation students does not have an impact on the outcome variable) in favor of the alternative hypothesis (share of first-generation students does have an impact on the outcome variable). Additionally, since the confidence interval does not include 100, we can conclude that the share of first-generation students does have a real effect on the odds of average family income being above the poverty line. 
+
+The exponentiated slope estimate for the Pell Grant predictor variable is 60.88. This value represents the predicted multiplicative change in odds of average family income being above the poverty line associated with a one-unit change in the percentage of undergraduates receiving a Pell Grant when the share of first-generation students at a college is held constant. Our confidence interval indicates that we are 95% confident that the exponentiated slope value for the Pell Grant predictor variable exists between 56.60 and 65.48. The p-value of 1.059726e-39 is less than 0.05, which indicates that we reject the null hypothesis for this variable (percentage of undergraduates receiving a Pell Grant does not have an impact on the outcome variable) in favor of the alternative hypothesis (percentage of undergraduates receiving a Pell Grant does have an impact on the outcome variable). Additionally, since the confidence interval does not include 100, we can conclude that the percentage of undergraduates that receive Pell Grants does have a real effect on the odds of average family income being above the poverty line. 
+
+### Model Evaluation
+```{r accuracy-visualization, echo = FALSE}
+threshold <- 0.5
+mod %>%
+  augment(type.predict = 'response') %>%
+  ggplot(aes(y = .fitted, x = factor(POVLINE))) + 
+  geom_boxplot() + 
+  ylab('Predicted Probability of \nbeing above Poverty Line') + 
+  xlab('Actual Outcome (1 = Above Poverty Line, 0 = Below Poverty Line)') + labs(caption=("Side-by-side boxplots comparing the predicted probability  that a univesity's average family\nincome is above the poverty line on the y-axis and the actual outcome on the x-axis.\nThe threshold, shown as dashed red line, is set at y = 0.5")) +
+  theme_classic() + 
+  ggtitle('Model Accuracy Visualization') + 
+  geom_hline(yintercept = threshold, color = 'red', linetype = 2) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.caption = element_text(hjust = 0.5))
+
+```
+
+The above figure compares the model's predicted probabilities that each university's average family income is above the federal poverty with the actual outcome (0 if the average family income was below the poverty line, 1 if it was above). We chose a threshold of 0.5 to evaluate the model because we felt this was the best benchmark given the context of the data. With this threshold, the probability of the model correctly predicting whether the average family income is above or below the poverty line (accuracy) is 0.869. The probability of the model predicting that the average family income is above the poverty line when it actually is above the poverty line (sensitivity) is 0.843. The probability of the model predicting that the average family income is below the poverty line when it actually is below the poverty line (specificity) is 0.776. The probability of the model predicting that the average family income is below the poverty line when it actually is above the poverty line (false negative rate) is 0.0385. The probability of the model predicting that the average family income is above the poverty line when it is actually is below the poverty line (false positive rate) is 0.575. Our high accuracy, specificity, and sensitivity indicates that our model is a relatively good fit for our data set. While it is not ideal to have a relatively high false positive rate, we were able to keep the false negative rate down to only about 4%.
+
+```{r eval-table, echo = FALSE}
+eval_table <- matrix(c(0.8694107, 0.8426431, 0.7755102, 0.03847649, 0.5746269), ncol = 1, byrow = TRUE)
+colnames(eval_table) <- c("Value")
+rownames(eval_table) <- c("Accuracy", "Sensitivity", "Specificity", "False Negative Rate", "False Positive Rate")
+reactable(
+  eval_table,
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 70,
+    headerStyle = list(background = "#f7f7f8")
+  ),
+  columns = list(
+    Species = colDef(minWidth = 140)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  theme = reactableTheme(
+    style = list(fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,     Helvetica, Arial, sans-serif"),
+  )
+)
+```
+
+# Conclusion
+
+### General Takeaways
+The goal of this project was to determine the effectiveness of financial aid programs at post-secondary institutions. The model analyzes this by predicting whether average family income is above the federal poverty line based on two predictor variables: the percentage of students that receive the Pell Grant and the percentage of first-generation students who attend the institution. Our model is able to correctly predict whether the average family income at a given university is above the federal poverty line approximately 87% of the time. Based on this and the fact that our p-values are below the confidence threshold, we reject the null hypothesis in favor of the alternative: universities with a larger percent of first-generation students and Pell Grant recipients are more likely to have an average family income that is below the federal poverty line. Overall, the significance of each of the model’s predictor variables suggests that financial aid programs are generally effective at post-secondary institutions and support is typically directed to the students who need it most.
+
+### Limitations
+To better determine whether financial aid is reaching those who need it most, we should look at data collected on an individual level rather than the student body of a university as a whole. Ideally, we could look at students from one university and create binary variables for students who receive Pell Grants and first-generation students. 
+
+Also, there may be some overlap between PCTPELL and FIRST_GEN in the data set. It is possible that some students who receive a Pell Grant are also first generation students and our model fails to take this into account. Furthermore, not all first generation students may need financial aid, as it depends on each family’s situation. Similarly, not all students with low family income need financial assistance, as income does not necessarily equate to wealth.
+
+Lastly, we chose to use the federal poverty line for a family of four. This value does not apply to students who have a family greater than or less than four, so some students may be mis-categorized due to this incorrect representation. 
+
+# Code Appendix
+```{r code-appendix, eval = FALSE}
+# Load packages
+library(broom)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(reactable)
+
+# Read data
+scorecard <- read.csv("scorecard.csv")
+
+# Mutate data
+scorecard <- scorecard %>%
+  mutate(FAMINC, POVLINE = ifelse(FAMINC > 26200, 1, 0))
+scorecard <- scorecard %>%
+  mutate(PCTPELL = PCTPELL * 100)
+scorecard <- scorecard %>%
+  mutate(FIRST_GEN = FIRST_GEN * 100)
+
+# Data visualization
+scorecard %>%
+  ggplot(aes(x = FIRST_GEN, y = FAMINC, color = PCTPELL)) + 
+  geom_point() + 
+  annotate("text", x = 73, y = 34000, label = "Poverty Line", size = 3.25) +
+  geom_hline(yintercept=26200) +
+  labs(x = "Percent of First Generation Students", y = "Average Family Income ($)",   title = "Average Family Income by Percent of First Generation\nStudents and Percent Pell Recipients", color = "Percent of Students\nReceiving Pell Grants\n", caption = "Scatterplot with average family income in real 2015 dollars by university on the y-axis,\nproportion of first generation students by university on the x-axis, and percentage of\nundergraduate students receiving a Pell Grant by university represented on color scale.\n The federal poverty line for a family of four is ($26,200 annual income) is shown.") +
+    scale_colour_gradient(
+    low = "#FF5733",
+    high = "#7600DC",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "colour"
+) + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(legend.title = element_text(hjust = 0.5)) + 
+  theme(plot.caption = element_text(hjust = 0.5))
+
+# Fit model
+mod <- scorecard %>%
+  with(glm(POVLINE ~ FIRST_GEN + PCTPELL))
+
+mod %>%
+  coef() %>%
+  exp()
+
+# Statistics table
+data_table <- matrix(c(466.73404, "[447.47849,
+                       868.1818]", "0", 24.6687, "[22.11886,
+                       27.50840]",	"3.490981e-128", 60.87896, "[56.60361, 65.47723]", "1.059726e-39"), ncol = 3, byrow = TRUE)
+colnames(data_table) <- c("Estimate (exponentiated)", "95% Confidence Interval (exponentiated)", "P-value")
+rownames(data_table) <- c("Intercept", "FirstGen", "PellGrant")
+reactable(
+  data_table,
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 70,
+    headerStyle = list(background = "#f7f7f8")
+  ),
+  columns = list(
+    Species = colDef(minWidth = 140)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  theme = reactableTheme(
+    style = list(fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,     Helvetica, Arial, sans-serif"),
+  )
+)
+data_table
+
+# Accuracy Calculations Table
+
+mod %>%
+  augment(type.predict = 'response') %>%
+  mutate(predictpovline = .fitted >= threshold) %>%
+  count(POVLINE, predictpovline)
+
+eval_table <- matrix(c(0.8694107, 0.8426431, 0.7755102, 0.03847649, 0.5746269), ncol = 1, byrow = TRUE)
+colnames(eval_table) <- c("Value")
+rownames(eval_table) <- c("Accuracy", "Sensitivity", "Specificity", "False Negative Rate", "False Positive Rate")
+reactable(
+  eval_table,
+  defaultColDef = colDef(
+    header = function(value) gsub(".", " ", value, fixed = TRUE),
+    cell = function(value) format(value, nsmall = 1),
+    align = "center",
+    minWidth = 70,
+    headerStyle = list(background = "#f7f7f8")
+  ),
+  columns = list(
+    Species = colDef(minWidth = 140)  # overrides the default
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  theme = reactableTheme(
+    style = list(fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,     Helvetica, Arial, sans-serif"),
+  )
+)
+eval_table
+
+```
+
