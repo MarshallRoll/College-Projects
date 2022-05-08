@@ -20,7 +20,12 @@ Completed projects from various college classes. These include:
 * Project which seeks to find the relationship between the percent of first generation students and the percent of students receiving a Pell Grant to the odds of average family income being above the federal poverty line for a family of 4 ($26,200/year). Uses logistic regression modelling in R and the college scorecard dataset to obtain university-level data. 
 
 ## Introduction to Data Science (STAT 112)
-*ongoing*
+
+#### Movie Recommender
+* Website that allows users to explore a large dataset of movies released in the last century across lanugages and genres. Provides strong data visualizations to depict analytics and also recommends movies based on selected genres. Created using Shiny, an R package that allows users to build interactive web apps.
+
+#### Data Visualization Portfolio
+* A portfolio of data visualizations created in RStudio using a variety of R packages, including ggplot, leaflet, and patchwork. 
 
 ## Linear Algebra (MATH 236)
 
