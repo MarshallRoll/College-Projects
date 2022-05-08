@@ -25,7 +25,7 @@ Variables in our dataset:
 - Genre: Categories the movie it can be classified as.
 - Poster_Url: Url of the movie poster.
 
-If you would like to explore or gain ddditional information regarding the dataset, you can visit dataset's original source. (Link: https://www.kaggle.com/datasets/disham993/9000-movies-dataset)
+If you would like to explore or gain additional information regarding the dataset, you can visit dataset's original source. (Link: https://www.kaggle.com/datasets/disham993/9000-movies-dataset)
 
 ## 👩🏻‍💻 Navigating the App 
 
