@@ -1,0 +1,375 @@
+---
+title: "Visualization_Portfolio"
+author: "Marshall Roll"
+date: "5/8/2022"
+output: html_document
+---
+
+```{r}
+library(tidyverse)    
+library(gardenR)   
+library(lubridate)
+library(maps)          
+library(ggmap) 
+library(rvest)  
+library(RColorBrewer)  
+library(sf)            
+library(leaflet)       
+library(carData) 
+```
+
+```{r}
+data("garden_harvest")
+
+#COVID-19 data from the New York Times
+covid19 <- read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")
+
+Starbucks <- read_csv("https://www.macalester.edu/~ajohns24/Data/Starbucks.csv")
+
+data_site <- 
+  "https://www.macalester.edu/~dshuman1/data/112/2014-Q4-Trips-History-Data.rds" 
+Trips <- readRDS(gzcon(url(data_site)))
+Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv")
+```
+
+## Washington DC Bike Ridership
+
+```{r}
+trips_and_stations <- merge(Stations, Trips, by.x=c("name"),
+    by.y=c("sstation")) %>% 
+  group_by(name, lat, long) %>% 
+  summarize(Departures = n())
+```
+
+  
+```{r,fig.alt = "Map of Washington DC with point color indiciating the number of riders. Lighter points indicate a greater volume of riders."}
+wash_dc <- get_stamenmap(
+    bbox = c(left = -77.1477, bottom = 38.8257, right = -76.8284, top = 38.9654), 
+    maptype = "terrain",
+    zoom = 12)
+
+ggmap(wash_dc) +
+  geom_point(data = trips_and_stations, 
+             aes(x = long, y = lat, color = Departures)) +
+  labs(title = 'Washington DC Bike Ridership by Departure Location', caption = 'Latitude and longitude of stations to rent bikes with lighter points inidicating a greater volume of riders. \n Plot created by Marshall Roll, data from Capital BikeShare Rental Dataset.') + 
+  theme_map() + 
+  scale_color_gradient(low = "#69E5FF", high = "#1614FF")
+
+```
+
+## COVID-19 cases by state
+```{r, eval = FALSE}
+census_pop_est_2018 <- read_csv("https://www.dropbox.com/s/6txwv3b4ng7pepe/us_census_2018_state_pop_est.csv?dl=1") %>% 
+  separate(state, into = c("dot","state"), extra = "merge") %>% 
+  select(-dot) %>% 
+  mutate(state = str_to_lower(state))
+
+states_map <- map_data("state")
+
+covid19_census <- covid19 %>%
+  mutate(state = str_to_lower(state)) %>% 
+  mutate(day = day(date)) %>% 
+  filter(day == 15) %>% 
+  left_join(census_pop_est_2018,
+            by = c("state" = "state")) %>% 
+  group_by(state) %>% 
+  mutate(case_per_10000 = (cases/est_pop_2018)*10000) %>% 
+  ungroup() %>% 
+  arrange(state)
+
+covid <- covid19_census %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state, 
+               fill = case_per_10000,
+               group = date)) +
+  expand_limits(x = states_map$long, y = states_map$lat) + 
+    labs(title = "Cumulative COVID-19 Cases by State per 10,000 People", 
+       subtitle = "Date: {closest_state}",
+       fill = "Cumulative\nCases per 10,000",
+       caption = "US Map showing the cumulative number of COVID-19 cases by state as of 3/7/22, with lighter values\nindicating higher case loads per 10,000 people. Plot by Marshall Roll, data courtesy of NY Times.") +
+  theme_map() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.caption = element_text(hjust = 0.5)) +
+  scale_fill_viridis_c(direction = -1) +
+  transition_states(date) 
+
+animate(covid, nframes = 200, end_pause = 10)
+anim_save("covid.gif")
+```
+
+```{r, echo=FALSE, fig.alt = "Map of the United States showing the per capita cases by state over time, with darker colors indicating higher per capita case loads. Each frame indicates the per capita cases on the 15th of each month between March 2020 and March 2022."}
+knitr::include_graphics("covid.gif")
+```
+
+## Minneapolis Police Stops
+
+```{r}
+mpls_suspicious <- MplsStops %>% 
+  group_by(neighborhood) %>% 
+  summarize(total_stops = n(), 
+         total_sus = sum(problem == "suspicious"), 
+         prop_sus = total_sus/total_stops) %>% 
+  ungroup() %>% 
+  select(-total_sus) %>% 
+  arrange(desc(total_stops))
+
+mpls_suspicious
+
+```
+
+```{r}
+mpls_nbhd <- st_read("Minneapolis_Neighborhoods/Minneapolis_Neighborhoods.shp", quiet = TRUE)
+
+mpls_all <- mpls_nbhd %>% 
+  left_join(mpls_suspicious,
+            by = c("BDNAME" = "neighborhood")) %>% 
+  left_join(MplsDemo, 
+            by = c("BDNAME" = "neighborhood"))
+```
+
+```{r, fig.alt = "Map showing the proportion of stops that were suspicious by Minneapolis neighborhood."}
+sus_pal <- colorNumeric("viridis",
+                    domain = mpls_all$prop_sus,
+                    reverse = TRUE)
+
+leaflet(mpls_all) %>% 
+  addProviderTiles(providers$Stamen.Toner) %>% 
+  addPolygons(
+    stroke = FALSE, 
+    fillOpacity = 0.7,
+    fillColor = ~sus_pal(prop_sus),
+    label = ~BDNAME) %>% 
+  addLegend(pal = sus_pal,
+          values = ~prop_sus,
+          opacity = 0.5,
+          title = "Proportion Suspicious",
+          position = "bottomright")
+  
+```
+The proportion of police stops for suspicious behavior is much smaller on the south side of Minneapolis, and is much lower in the northern regions near Lauderdale. I notice that many neighborhoods that I know to have more white, high-income residents tend to have a lower proportion of stops for suspicious behavior.
+
+```{r, fig.alt = "Map showing the household income by Minneapolis neighborhood. Darker colors indicate higher income."}
+income_pal <- colorNumeric("viridis",
+                    domain = mpls_all$hhIncome,
+                    reverse = TRUE)
+
+leaflet(mpls_all) %>% 
+  addProviderTiles(providers$Stamen.Toner) %>% 
+  addPolygons(
+    stroke = FALSE, 
+    fillOpacity = 0.7,
+    fillColor = ~income_pal(hhIncome),
+    label = ~BDNAME) %>% 
+  addLegend(pal = income_pal,
+          values = ~hhIncome,
+          opacity = 0.5,
+          title = "Household Income",
+          position = "bottomright")
+```
+This map shows the distribution of household income across Minneapolis neighborhoods. Higher income neighborhoods tend to be on the outskirts of town, particularly on the southwest side north of Bloomington. Low income neighborhoods tend to be closer to the city center near the highway.
+
+## Bike Rental by Time
+
+```{r, fig.alt = "Density plot showing the time of day for bike rentals in late 2014 and early 2015. X-axis shows time of day on a 24-hour scale, y-axis shows the density."}
+trips_time <- Trips %>% 
+  separate(sdate, into = c("day", "time"), sep = " ", 
+            remove = FALSE) %>% 
+  separate(time, into = c("hour", "minute"), sep = ":",
+            remove = FALSE)
+
+trips_time %>%
+  mutate(time_decimal = as.numeric(hour) + as.numeric(minute)/60) %>% 
+  ggplot(aes(x = time_decimal)) +
+  geom_density(fill = "lightblue") + 
+  labs(x = "Time of Day (24H)", y = "Density", caption = "Density plot showing the number of bike rentals by time of day from Oct 2014-Jan 2015. \n Data from Capital BikeShare Rental Dataset.", title = "Bike Rentals by Time")
+
+# source: https://bookdown.org/hneth/ds4psy/10-3-time-lubridate.html
+```
+  
+```{r, fig.alt="Side-by-side density plots showing the volume of bike rentals by weekday in late 2014 and early 2015. X-axis shows time of day on a 24-hour time scale, y-axis shows density"}
+
+trips_time %>% 
+  mutate(time_decimal = as.numeric(hour) + as.numeric(minute)/60) %>% 
+  mutate(weekday = wday(sdate, label = TRUE)) %>% 
+  ggplot(aes(x = time_decimal)) +
+  geom_density(fill = "lightblue") +
+  facet_wrap(.~ weekday) +
+  labs(x = "Rental Start Time (24H)", y ="Density", 
+       title = "Bike Rentals by Time for each day of Week",
+       caption = "Side-by-side density plots showing bike rentals by day of week during Oct 2014-Jan 2015. \n Data from Capital BikeShare Rental Dataset.")
+
+```
+
+## Favorite Places Map
+
+```{r}
+marshall_places <- tibble(
+  place = c("Kirk Hall", "Olin-Rice", "High School", "Statue of Liberty", "Lumen Field", "Stamford Bridge", "Sydney Opera House", "Machu Picchu", "Mauna Kea", "Homer Airport"),
+  long = c(-93.1695147, -93.171134, -117.455005, 
+           -74.0445, -122.3316, -0.1910, 151.2153, 
+           -72.5450, -155.8246, -151.4928),
+  lat = c(44.9385273, 44.9367076, 47.7658763, 
+          40.6892, 47.5952, 51.4817, -13.1631,
+          -33.8568, 20.0046, 59.6431),
+  top_3 = c(TRUE, FALSE, TRUE, FALSE, FALSE, 
+            FALSE, TRUE, FALSE, FALSE, FALSE))
+```
+
+```{r, "map showing Marshall's favorite places"}
+top3_colors <- colorFactor(palette = c("orange", "purple"),
+                           domain = marshall_places$top_3) 
+                           
+leaflet(data = marshall_places) %>% 
+  addProviderTiles(providers$Stamen.Toner) %>% 
+  addCircles(lng = ~long, 
+             lat = ~lat, 
+             label = ~place, 
+             color = ~top3_colors(top_3)) %>% 
+  addLegend(pal = top3_colors,
+            values = ~top_3,
+            opacity = 0.5,
+            title = "Favorite Place",
+            position = "bottomright")
+```
+
+## Cumulative Tomato Harvest by Variety
+
+```{r, eval = FALSE}
+tomato <- garden_harvest %>% 
+  filter(vegetable == "tomatoes") %>% 
+  group_by(date, variety) %>% 
+  summarize(daily_harvest_lb = sum(weight)*0.00220462) %>% 
+  ungroup() %>% 
+  complete(variety, 
+           date, 
+           fill = list(daily_harvest_lb = 0)) %>% 
+  group_by(variety) %>% 
+  mutate(total_weight_variety = sum(daily_harvest_lb),
+         cumulative_weight_variety = cumsum(daily_harvest_lb)) %>% 
+  ungroup() %>% 
+  select(total_weight_variety, cumulative_weight_variety, 
+         date, variety) %>% 
+  ggplot(aes(x = date, y = cumulative_weight_variety, 
+             fill = fct_reorder(variety, total_weight_variety))) +
+  geom_area() +
+  geom_text(aes(label = variety), position= "stack", 
+            check_overlap = TRUE) +
+  labs(x = "", y = "Weight (lbs.)", 
+       title = "Total Tomato Harvest Weight, by Variety",
+       subtitle = "Date: {frame_along}", 
+       caption = "Total tomato harvest by tomato variety between July and October 2020.\nData from llendway/gardenR on Github, plot created by Marshall Roll") +
+  theme(legend.position = "none") +
+  transition_reveal(date)
+
+animate(tomato)
+anim_save("tomato.gif")
+```
+
+```{r, echo=FALSE, fig.alt = "Animated stacked area plot showing the cumulative weight of tomato harvest in Prof. Lendway's garden by variety between July and October 2020. X-axis shows date, y-axis shows total weight in pounds of all tomato varieties, color shows tomato variety, and animation frame shows date."}
+knitr::include_graphics("tomato.gif")
+```
+
+## Twin Cities Starbucks
+
+```{r fig.alt = "Map of Twin Cities showing locations of Starbucks"}
+twin_cities <- get_stamenmap(
+    bbox = c(left = -93.3316, bottom = 44.8164, right = -92.6930, top = 45.0706), 
+    maptype = "terrain",
+    zoom = 11)
+
+ggmap(twin_cities) +
+  geom_point(data = Starbucks, 
+             aes(x = Longitude, y = Latitude), 
+             color = "blue",
+             alpha = 1, 
+             size = 1) +
+  labs(title = 'Twin Cities Starbucks Locations', caption = 'Location of Starbucks in Twin Cities Data courtesy of Macalester Statistics') + 
+  theme_map()
+```
+
+## Macalester College Courses
+
+```{r}
+fall2017 <- read_html("https://www.macalester.edu/registrar/schedules/2017fall/class-schedule/#crs10008")
+```
+
+```{r}
+course_nums <- fall2017 %>%
+  html_elements(".class-schedule-course-number") %>%
+  html_text2()
+
+course_names <- fall2017 %>%
+  html_elements(".class-schedule-course-title") %>%
+  html_text2()
+
+weekdays <- fall2017 %>%
+  html_elements(".class-schedule-course-title+ 
+                .class-schedule-label") %>%
+  html_text2() %>% 
+  str_sub(start = 7)
+
+times <- fall2017 %>%
+  html_elements(".class-schedule-label:nth-child(4)") %>%
+  html_text2() %>% 
+  str_sub(start = 6)
+
+room <- fall2017 %>%
+  html_elements(".class-schedule-label:nth-child(5)") %>%
+  html_text2() %>% 
+  str_sub(start = 6)
+
+instructors <- fall2017 %>%
+  html_elements(".class-schedule-label:nth-child(6)") %>%
+  html_text2() %>% 
+  str_sub(start = 12)
+
+avail <- fall2017 %>%
+  html_elements(".class-schedule-label:nth-child(7)") %>%
+  html_text2() %>% 
+  str_sub(start = 13)
+
+gened <- fall2017 %>%
+  html_elements("#content p:nth-child(2)") %>%
+  html_text2() %>% 
+  str_sub(start = 40) %>% 
+  str_replace_all("\n", " ")
+
+desc <- fall2017 %>%
+  html_elements(".collapsed p:nth-child(1)") %>%
+  html_text2() %>% 
+  str_sub(start = 2) %>% 
+  str_replace_all("\n", "")
+  
+
+course_df <- tibble(number=course_nums, 
+                    name=course_names,
+                    day=weekdays,
+                    time=times,
+                    room=room,
+                    instructor=instructors,
+                    available=avail,
+                    gened=gened,
+                    description=desc)
+head(course_df)
+```
+
+```{r, fig.alt="Side-by-side boxplots showing the distribution of title lengths by department. Department on x-axis, title length on y-axis."}
+course_df %>% 
+  mutate(title_len = str_length(name),
+         desc_len = str_length(desc),
+         prefix = ifelse(substr(number, 1, 2) == "PE",
+                         substr(number, 1, 2),
+                         substr(number, 1, 4))) %>%
+  group_by(prefix) %>% 
+  mutate(count = n()) %>% 
+  filter(count >= 10) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = prefix, y = title_len)) +
+  geom_boxplot(fill = "lightyellow") +
+  labs(x = "Department", y = "Title Length",
+       title = "Title Length Distribution by Department",
+       caption = "Boxplots showing distribution of title length by department.\nData from Macalester Registrar Website, plot created by Marshall Roll") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=-45))
+```
