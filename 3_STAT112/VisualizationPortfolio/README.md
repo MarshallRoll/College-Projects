@@ -1,7 +1,7 @@
 ## Data Visualization Portfolio
 #### File Download
 
-Download the .rmd file in the "Visualization_Portfolio" folder and open in RStudio or other compatible IDE.
+Download Visualization_Portfolio.rmd and open in RStudio or other compatible IDE.
 
 #### Project Description
 
