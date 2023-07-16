@@ -3,6 +3,11 @@
 
 Completed projects from various college classes. These include:
 
+## Statistical Machine Learning (STAT 253)
+
+#### Modeling Platelet Levels and Stroke Events
+* Project which seeks to use statistical machine learning techniques in R to shed light on the underlying factors that are connected to stroke events. Divided into three major sections: predicting platelet levels, a factor related to stroke events, using regression techniques, predicting whether individuals are likely to have a stroke or not using classification techniques, and uncovering other important patterns in the data using clustering.
+
 ## Object-Oriented Programming (COMP 127)
 
 #### Space Force 
@@ -32,7 +37,4 @@ Completed projects from various college classes. These include:
 #### Problem Sets
 * Various problem sets completed in RStudio to practice linear algebra concepts such as eigenvectors and eigenvalues, projection onto subspaces, Fourier Analysis, regression modeling, and stochastic matrices. 
 
-## Core Concepts in Computer Science (COMP 123)
 
-#### Jeopardy
-* Game in which users play a 9-question trivia game, getting "money" for each question answered correctly in each of three different categories. After attempting all 9 questions, users will have to answer a "Final Jeopardy" question, deciding how much of their earnings to wager. Written in Python.

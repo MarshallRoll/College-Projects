@@ -1,0 +1,412 @@
+---
+title: 'Final Project: Code Apendex'
+subtitle: Emily Neuman, Kenny Nhan, Marshall Roll
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE, tidy = TRUE)
+```
+
+```{r}
+# load necessary packages 
+library(ISLR)
+library(dplyr)
+library(readr)
+library(broom)
+library(ggplot2)
+library(factoextra)
+library(reactable)
+library(tidymodels) 
+library(probably)
+library(ggthemes)
+library(cluster)
+library(rpart.plot)
+library(vip)
+tidymodels_prefer()
+
+# read in data 
+heart_failure <- read_csv("https://raw.githubusercontent.com/MarshallRoll/STAT_253_Project/main/heart_failure_clinical_records_dataset.csv")
+
+stroke <- read_csv("https://raw.githubusercontent.com/MarshallRoll/STAT_253_Project/main/healthcare-dataset-stroke-data.csv?token=GHSAT0AAAAAAB2VESBM5CKF2AR2WIX2MS76Y3CZIYQ")
+```
+
+# Data Cleaning 
+
+```{r}
+#heart failure clean data 
+ heart_failure <- heart_failure %>%
+   select(-DEATH_EVENT) %>% 
+  select(-time)
+```
+
+```{r}
+# stroke clean data 
+stroke_clean <- stroke %>% 
+  filter(bmi != "N/A") %>% 
+  mutate(bmi = as.numeric(bmi)) %>% 
+  filter(smoking_status != "Unknown") %>% 
+  select(-id) %>% 
+  mutate(stroke = relevel(factor(stroke), ref='0'))
+```
+
+# Regression 
+
+```{r}
+# creating CV folds 
+heart_failure_cv <- vfold_cv(heart_failure, v = 13)
+```
+
+### Linear Regression 
+```{r}
+# building linear model 
+
+# model spec
+lm_spec <-
+    linear_reg() %>% 
+    set_engine(engine = 'lm') %>% 
+    set_mode("regression")
+
+modAll <- fit(lm_spec,
+            platelets ~ ., 
+            data = heart_failure)
+
+# recipes & workflows
+all_rec <- recipe( platelets ~ . , data = heart_failure) %>%
+    step_nzv(all_predictors()) %>% # removes variables with the same value
+    step_novel(all_nominal_predictors()) %>% # important if you have rare categorical variables 
+    step_normalize(all_numeric_predictors()) %>%  # important standardization step for LASSO
+    step_dummy(all_nominal_predictors())
+
+model_wf <- workflow() %>%
+  add_recipe(all_rec) %>%
+  add_model(lm_spec)
+
+full_model <- fit(model_wf, data = heart_failure) 
+
+full_model %>% tidy()
+```
+
+### LASSO
+```{r}
+# building LASSO model 
+
+lm_lasso_spec <- 
+  linear_reg() %>%
+  set_args(mixture = 1, penalty = tune()) %>% 
+  set_engine(engine = 'glmnet') %>% 
+  set_mode('regression')
+
+lasso_wf <- workflow() %>% 
+  add_recipe(all_rec) %>%
+  add_model(lm_lasso_spec)
+
+# Fit Model
+lasso_fit <- lasso_wf %>% 
+  fit(data = heart_failure) # Fit to data
+
+# Tune Model (trying a variety of values of Lambda penalty) 
+penalty_grid <- grid_regular(
+  penalty(range = c(-1, 4)), #log10 transformed
+  levels = 100)
+
+tune_res <- tune_grid( # new function for tuning parameters
+  lasso_wf, # workflow
+  resamples = heart_failure_cv, # cv folds
+  metrics = metric_set(rmse, mae),
+  grid = penalty_grid # penalty grid defined above
+)
+
+autoplot(tune_res) + theme_classic()
+
+best_se_penalty <- select_by_one_std_err(tune_res, metric = 'mae', desc(penalty))
+
+# best_penalty <- select_best(tune_res, metric = 'rmse') # choose penalty value based on lowest mae or rmse
+
+# Fit Final Model
+final_wf <- finalize_workflow(lasso_wf, best_se_penalty) # incorporates penalty value to workflow
+
+final_fit <- fit(final_wf, data = heart_failure)
+
+tidy(final_fit)
+```
+
+# Classification
+
+### Logistic Regression 
+
+```{r}
+# creation of cv folds
+stroke_cv <- vfold_cv(stroke_clean, v = 15)
+```
+
+
+```{r}
+# Logistic LASSO Regression Model Spec
+logistic_lasso_spec_tune <- logistic_reg() %>%
+    set_engine('glmnet') %>%
+    set_args(mixture = 1, penalty = tune()) %>%
+    set_mode('classification')
+
+# Recipe
+logistic_rec <- recipe(stroke~ ., data = stroke_clean) %>%
+    step_normalize(all_numeric_predictors()) %>% 
+    step_dummy(all_nominal_predictors())
+
+# Workflow (Recipe + Model)
+log_lasso_wf <- workflow() %>% 
+    add_recipe(logistic_rec) %>%
+    add_model(logistic_lasso_spec_tune) 
+
+# Tune Model (trying a variety of values of Lambda penalty)
+penalty_grid <- grid_regular(
+  penalty(range = c(-4, -1)), #log10 transformed  (kept moving min down from 0)
+  levels = 100)
+
+tune_output <- tune_grid( 
+  log_lasso_wf, # workflow
+  resamples = stroke_cv, # cv folds
+  metrics = metric_set(roc_auc,accuracy),
+  control = control_resamples(save_pred = TRUE, event_level = 'second'),
+  grid = penalty_grid # penalty grid defined above
+)
+```
+```{r}
+autoplot(tune_output) + theme_classic()
+```
+
+```{r}
+# Select Penalty
+best_se_penalty <- select_by_one_std_err(tune_output, metric = 'roc_auc', desc(penalty)) # choose penalty value based on the largest penalty within 1 se of the highest CV roc_auc
+best_se_penalty
+```
+```{r}
+# Fit Final Model
+final_fit_se <- finalize_workflow(log_lasso_wf, best_se_penalty) %>% # incorporates penalty value to workflow 
+    fit(data = stroke_clean)
+
+final_fit_se %>% tidy()
+```
+```{r}
+glmnet_output <- final_fit_se %>% extract_fit_engine()
+    
+# Create a boolean matrix (predictors x lambdas) of variable exclusion
+bool_predictor_exclude <- glmnet_output$beta==0
+
+# Loop over each variable
+var_imp <- sapply(seq_len(nrow(bool_predictor_exclude)), function(row) {
+    # Extract coefficient path (sorted from highest to lowest lambda)
+    this_coeff_path <- bool_predictor_exclude[row,]
+    # Compute and return the # of lambdas until this variable is out forever
+    ncol(bool_predictor_exclude) - which.min(this_coeff_path) + 1
+})
+
+# Create a dataset of this information and sort
+var_imp_data <- tibble(
+    var_name = rownames(bool_predictor_exclude),
+    var_imp = var_imp
+)
+var_imp_data %>% arrange(desc(var_imp))
+```
+```{r}
+# evalutation metrics 
+
+# CV results for "best lambda"
+tune_output %>%
+    collect_metrics() %>%
+    filter(penalty == best_se_penalty %>% pull(penalty))
+
+stroke_clean %>%
+    count(stroke)
+
+# Compute the NIR
+3246/(3246+180)
+```
+
+
+```{r}
+final_output <- final_fit_se %>% predict(new_data = stroke_clean, type='prob') %>% bind_cols(stroke_clean)
+
+final_output %>%
+  ggplot(aes(x = stroke, y = .pred_1)) +
+  geom_boxplot()
+```
+
+```{r}
+
+threshold_output <- final_output %>%
+    threshold_perf(truth = stroke, estimate = .pred_0, thresholds = seq(0,1,by=.01)) 
+
+threshold_output %>%
+    filter(.metric == 'j_index') %>%
+    ggplot(aes(x = .threshold, y = .estimate)) +
+    geom_line() +
+    labs(y = 'J-index', x = 'threshold') +
+    theme_classic()
+
+threshold_output %>%
+    filter(.metric == 'j_index') %>%
+    arrange(desc(.estimate))
+
+threshold_output %>%
+    filter(.metric == 'distance') %>%
+    arrange(.estimate)
+```
+
+```{r}
+log_metrics <- metric_set(accuracy,sens,yardstick::spec)
+
+final_output %>%
+    mutate(.pred_class = make_two_class_pred(.pred_0, levels(stroke), threshold = .91)) %>%
+    log_metrics(truth = stroke, estimate = .pred_class, event_level = 'second')
+```
+
+### Decision Tree 
+```{r}
+set.seed(10)
+
+ct_spec_tune <- decision_tree() %>%
+  set_engine(engine = 'rpart') %>%
+  set_args(cost_complexity = tune(),  
+           min_n = 2, 
+           tree_depth = NULL) %>% 
+  set_mode('classification') 
+
+data_rec <- recipe(stroke ~ ., data = stroke_clean)%>%
+    step_normalize(all_numeric_predictors()) %>% 
+    step_dummy(all_nominal_predictors())
+
+data_wf_tune <- workflow() %>%
+  add_model(ct_spec_tune) %>%
+  add_recipe(data_rec)
+
+param_grid <- grid_regular(cost_complexity(range = c(-5, 1)), levels = 10) 
+
+tune_res <- tune_grid(
+  data_wf_tune, 
+  resamples = stroke_cv, 
+  grid = param_grid, 
+  metrics = metric_set(accuracy) #change this for regression trees
+)
+autoplot(tune_res) + theme_classic()
+```
+```{r}
+best_complexity <- select_by_one_std_err(tune_res, metric = 'accuracy', desc(cost_complexity))
+data_wf_final <- finalize_workflow(data_wf_tune, best_complexity)
+
+stroke_clean_final_fit <- fit(data_wf_final, data = stroke_clean)
+
+
+tune_res %>% 
+  collect_metrics() %>%
+  filter(cost_complexity == best_complexity %>% pull(cost_complexity))
+```
+```{r}
+tree_mod_lowcp <- fit(
+    data_wf_tune %>%
+        update_model(ct_spec_tune %>% set_args(cost_complexity = .0001)),
+    data = stroke_clean
+)
+tree_mod_highcp <- fit(
+    data_wf_tune %>%
+        update_model(ct_spec_tune %>% set_args(cost_complexity = .1)),
+    data = stroke_clean
+)
+
+tree_mod_lowcp %>% extract_fit_engine() %>% rpart.plot()
+```
+
+```{r}
+tree_mod_lowcp %>% 
+    extract_fit_engine() %>% 
+    vip(num_features = 30) + theme_classic()
+```
+
+# Hierarchical Clustering 
+
+```{r}
+stroke_scaled <- stroke_clean %>% 
+  mutate(age = scale(age)) %>% 
+  mutate(avg_glucose_level = scale(avg_glucose_level)) %>% 
+  mutate(bmi = scale(as.numeric(bmi)))
+
+stroke_scaled <- stroke_scaled %>% 
+  mutate(across(where(is.character), as.factor))
+```
+
+```{r}
+stroke_cluster <- hclust(dist(stroke_scaled) + (daisy(stroke_scaled %>% select(where(is.factor)), metric = "gower")), method = "complete")
+
+plot(stroke_cluster)
+```
+**important clustering variables: bmi, average glucose levels**
+
+**slightly important clustering variables: hypertension**
+
+**unimportant clustering variables: age, ever_married, residence type, smoking status**
+
+```{r}
+stroke_scaled <- stroke_scaled %>% 
+  mutate(hclust_4 = factor(cutree(stroke_cluster, k = 4)), 
+         hclust_6 = factor(cutree(stroke_cluster, k = 6)), 
+         hclust_5 = factor(cutree(stroke_cluster, k = 5))) 
+
+hclust_4 <- factor(cutree(stroke_cluster, k = 4))
+
+stroke_scaled %>% 
+  ggplot(aes(x = as.numeric(bmi),
+             y = as.numeric(avg_glucose_level),
+             color = hclust_6)) +
+  geom_point() +
+  labs(x = "Normalized Body Mass Index (BMI)",
+       y = "Normalized Average Glucose Levels") + 
+  guides(color=guide_legend(title="Cluster")) +
+  theme_minimal()
+
+stroke_scaled %>% 
+  ggplot(aes(x = as.numeric(bmi),
+             y = as.numeric(avg_glucose_level),
+             color = hclust_6, alpha = stroke)) +
+  geom_point() + 
+  scale_x_continuous(limits = c(-3, 4)) + 
+  labs(x = "Normalized Body Mass Index (BMI)",
+       y = "Normalized Average Glucose Levels") + 
+  guides(color=guide_legend(title="Cluster")) +
+  guides(alpha = "none") +
+  theme_minimal()
+  
+# stroke_scaled %>% 
+#   ggplot(aes(x = hclust_6, y = as.numeric(avg_glucose_level), 
+#              fill = factor(stroke))) +
+#   geom_boxplot()
+
+
+stroke_scaled %>% 
+  group_by(hclust_6) %>% 
+  summarize("Total Cases" = n(),
+            "Number of Strokes" = sum(stroke == 1), 
+            "Proportion of Strokes" = round(sum(stroke == 1) / n(), 2)
+            )
+
+stroke_scaled %>% 
+  mutate(stroke = factor(stroke, labels = c("No Stroke", "Stroke"))) %>%
+  ggplot(aes(x = stroke, fill = hclust_6)) + 
+  geom_bar(position = "fill") +
+  labs(x = "", y = "Relative Frequency", title = "Relative Frequency of Stroke Event by Cluster") +
+  theme_light() + 
+  guides(fill=guide_legend(title="Cluster")) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+
+
+```{r}
+fviz_nbclust(stroke_scaled, FUN = hcut, method = "wss")
+```
+
+
