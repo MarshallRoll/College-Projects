@@ -1,0 +1,89 @@
+---
+title: "Understanding Progression of Reasoning Ability in Elderly Through the ACTIVE Study"
+author: "Marshall Roll and Brian Pryzby"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float:
+      collapsed: false
+    code_download: true
+bibliography: Library.bib
+abstract: "This study analyses the long-term impacts of individual reasoning outcomes within the ACTIVE study using a Generalized Estimating Equations (GEE) model. We conclude that given the frame of the study, with intermittent 'boosters' of training given, reasoning-directed training has no discernible long-term impact on the subjects' reasoning ability. It appears more likely that external outcomes relating to previous brain development have a strong impact on reasoning abilities, while failure to engage in active training will almost certainly result in reasoning decline."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warnings=FALSE)
+```
+
+## Introduction
+
+The ACTIVE study is a large-scale randomized trial testing the effects of three cognitive intervention treatments targeting memory, reasoning, and speed of processing in older adults ranging from age 65-94 over a ten-year period. Participants were divided into four groups, focusing on each of the indicated cognitive ability categories alongside a control group. The quantity of training varied among participants in an attempt to quantify the success of targeted cognitive training on elderly adults. Boosters, or additional focused training, were provided at 11 and 35 months. The study found that all trained groups exhibited increases in average cognitive ability of participants for at least five years. [@Active1] Over ten years, the reasoning and processing speed training continued to lead to higher average cognitive abilities when compared to the control group, but memory training did not. [@Active2] Participants within the ACTIVE study had their cognitive abilities measured at 0, 0.25, 1, 2, 3, 5, and 10 years, with a score given for each category. Given the advanced age of the participants, some unfortunately passed away during the span of the study, which contributed to discontinuities within the data.
+
+In this report, we are interested in understanding the long-term changes to reasoning ability. Introductory analysis shows that reasoning scores are positively modulated by all treatment groups, but are highest among participants that received reasoning training. Following the second booster at 35 months, all groups are at their highest average levels of reasoning scores, before experiencing a steady decline until year 10, as can be seen in the figure below.
+
+```{r, warning = FALSE}
+source('Cleaning.R') # Open Cleaning.R to see the data cleaning steps to create a long format dataset
+library(geeM)
+library(tidyverse)
+
+activeLong <- activeLong %>% mutate(INTGRP = relevel(INTGRP, ref='Control'))
+
+activeLong %>% 
+  group_by(INTGRP, Years) %>% 
+  summarize(mean = mean(na.omit(Reasoning))) %>% 
+  ggplot(aes(x = Years, y = mean, group = INTGRP, color = INTGRP)) +
+  geom_label(aes(x = 3.75, y = 24.5, label = "Year 3"), 
+             show.legend = FALSE, color = "black") +
+  geom_line() + 
+  geom_vline(xintercept = 3) +
+  labs(title = "Reasoning Scores by Year", x = "Years Since Initial Treatment", y = "Reasoning Score", subtitle = "Reasoning Scores decrease across all treatment groups after year 3.", color = "Treatment Group") + 
+  theme_minimal() 
+
+```
+
+## Methods
+
+To model reasoning scores, we use several explanatory variables, including years passed within the study, intervention group, and years of education. To best represent the relationship between time passed and group, we use a three way interaction term with years, a variable indicating if years passed is greater than three (time of the second booster), and treatment group. 
+
+Use of the operation of least squares, the standard technique of linear regression, is acceptable only when no correlation exists between observations. To generate accurate standard error and p-value estimates in settings with longitudinal data collected on the same subjects over time, like the ACTIVE study, a mixed effects model or generalized estimating equations (GEE) approach should be taken instead. [@Liang_Zeger_1986] To model our relationship of interest, we choose a GEE approach because we have a large data set with many observations and are interested in generating robust standard error estimates, which is a feature unique to GEE. We evaluated a variety of GEE models containing different combinations of our variables of interest, all of which contained an interaction between years and intervention group. The validity and strength of these models were measured through two primary tools. First, we compared the model standard error to the robust standard error to understand the correlation structure of our model. Our GEE model assumes an exchangeable correlation structure, meaning that covariance of observations is constant regardless of the time between them; we make this assumption because observations over time are dependent and do not display another clear structure of correlation. To evaluate error, we compare our model versus one with a conservative and potentially more accurate correlation structure. This comparison yields similar standard error estimates, producing confidence in our model. Analysis of residual plots highlights that there is some error at low and intermediate estimates, but overall the functional form of the model is fairly accurate.
+
+
+```{r results = "hide", warning = FALSE, message = FALSE, echo = FALSE}
+
+mod2 <- activeLong %>% drop_na(Reasoning,Years,INTGRP,YRSEDUC) %>% 
+  geem(Reasoning ~ INTGRP*I(Years > 3)*Years + YRSEDUC, data = ., id = AID, 
+       corstr = 'exchangeable')  #exchangeable working correlation
+
+mod2 %>% summary() 
+
+activeLong <- activeLong %>% drop_na(Reasoning,Years,INTGRP,YRSEDUC) %>% 
+  mutate(estimateMod2 = predict(mod2)) %>% 
+  mutate(ResidMod2 = Reasoning - estimateMod2)
+
+```
+
+## Results
+
+The GEE model produces fairly strong predictions for reasoning scores, highlighting that reasoning steadily declines after the third year, and that time is one of the strongest factors affecting reasoning. The coefficient for the variable indicating if more than three years have passed is approximately 4.22, the largest in the model. This highlights that reasoning scores after year three have a relatively high baseline, given the large positive association between this indicator variable and reasoning scores.
+
+Additionally, treatment group has a large effect on predicted reasoning scores. Unsurprisingly, the average predicted reasoning scores are highest among participants who received reasoning training before year 3, with higher predicted coefficients in all categories involving reasoning training. This indicates that the difference in slopes between the reasoning training and control group are much higher than the corresponding difference for the other treatment groups. However, this difference declines each year after year 3, more precipitously for reasoning than other groups. 
+
+
+
+
+
+
+## Conclusions
+
+Through our analysis, we are able to conclude that short bursts of reasoning specific training likely have no strong long-term effect on reasoning ability outcomes of elderly populations. There is evidence to show that direct engagement with reasoning training will have short-term benefits, but these gains are likely to revert themselves rather quickly. Our model shows that within the ACTIVE study, members of the reasoning intervention group had no discernible improvement over 10 years in reasoning ability. We believe that external factors, namely within the frame of our model years of education, are likely a more important indicator of long-term reasoning abilities than any focused reasoning. It also appears that reasoning is likely expected to decline over time for most elderly individuals, regardless of external factors. 
+
+This analysis is done strictly within the frame of the ACTIVE study, which contributes limitations to our conclusions. Participants only trained in short stints, so we cannot conclude if consistent, long-term engagement with reasoning training has any impact on individual reasoning outcomes for older populations. The ACTIVE study also contained a sample which is more educated than the general population, while also being comprised of willing participants looking to increase their cognitive ability [@Active1]. In addition, GEE models don't include subject-specific estimates, rather drawing conclusions from mean values. This potentially limits the ability for our model to pick up deeper trends within our data. 
+
+## Acknowledgements
+
+Thank you to Brianna for teaching us the wonders of longitudinal data analysis, alongside the proponents of the ACTIVE study for indirectly providing us with interesting and useful data to model.
+
+
+## References
