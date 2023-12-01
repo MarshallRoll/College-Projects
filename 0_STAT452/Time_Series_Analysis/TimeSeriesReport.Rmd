@@ -1,23 +1,21 @@
 ---
 title: "Macalester College Main Campus Energy Use"
 author: "Wenxuan Zhu, Marshall Roll"
-date: '`r format(Sys.Date(), "%B %d, %Y")`'
-output: 
+date: '10/18/23'
+output:
+  pdf_document:
+    toc: yes
   html_document:
     theme: flatly
-    toc: true
+    toc: yes
     toc_float:
-      collapsed: false
-    code_download: true
+      collapsed: no
+    code_download: yes
 bibliography: Library.bib
-abstract: "Reducing carbon emissions is of significant importance to post-secondary institutions. This case study of [Macalester College](https://www.macalester.edu/) in St. Paul, MN uses time series analysis to model and forecast energy use using the campus' main meter. By using a b-spline to model trend, month and during semester status to model seasonality, and MA(1) to model remaining correlated residuals, we develop a time series model that forecasts relatively constant energy use in 2023 before a slight long-term increase in 2025, following seasonal patterns."
+abstract: "Reducing carbon emissions is of significant importance to post-secondary institutions. This case study of Macalester College in St. Paul, MN uses time series analysis to model and forecast energy use using the campus' main meter. By using a b-spline to model trend, month and during semester status to model seasonality, and MA(1) to model remaining correlated residuals, we develop a time series model that forecasts relatively constant energy use in 2023 before a slight long-term increase in 2025, following seasonal patterns."
+
 ---
 
-<style type="text/css">
-  body{
-  font-size: 12pt;
-}
-</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warnings=FALSE)
@@ -25,7 +23,7 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warnings=FALSE)
 
 <br>
 
-```{r, out.width = "400px", fig.align='center'}
+```{r, out.width = '400px', fig.align='center'}
 knitr::include_graphics("mac_logo.png")
 ```
 
