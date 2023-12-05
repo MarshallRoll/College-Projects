@@ -13,8 +13,7 @@ Completed projects from various college classes. These include:
 areas, like Cathedral Hill, deviating from broader trends. Despite these insights, the study acknowledges the limitations inherent in using estimated census data and the potential exclusion of key non-spatial variables. The research underscores the need for continuous policy evaluation to address the long-term effects of historical housing discrimination.
 
 #### Macalester College Main Campus Energy Use: SARIMA Modeling & Forecasting
-
-*Reducing carbon emissions is of significant importance to post-secondary institutions. This case study of Macalester College in St. Paul, MN uses time series analysis to model and forecast energy use using the campus’ main meter. By using a b-spline to model trend, month and during semester status to model seasonality, and MA(1) to model remaining correlated residuals, we develop a time series model that forecasts relatively constant energy use in 2023 before a slight long-term increase in 2025, following
+* Reducing carbon emissions is of significant importance to post-secondary institutions. This case study of Macalester College in St. Paul, MN uses time series analysis to model and forecast energy use using the campus’ main meter. By using a b-spline to model trend, month and during semester status to model seasonality, and MA(1) to model remaining correlated residuals, we develop a time series model that forecasts relatively constant energy use in 2023 before a slight long-term increase in 2025, following
 seasonal patterns.
 
 ## Statistical Machine Learning (STAT 253)
