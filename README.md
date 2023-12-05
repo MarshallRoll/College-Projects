@@ -3,6 +3,20 @@
 
 Completed projects from various college classes. These include:
 
+## Correlated Data (STAT 452)
+
+#### Understanding Progression of Reasoning Ability in Elderly Through the ACTIVE Study
+* Project which seeks to analyze the long-term impacts of individual reasoning outcomes within the ACTIVE study using a Generalized Estimating Equations (GEE) model. We conclude that given the frame of the study, with intermittent ‘boosters’ of training given, reasoning-directed training has no discernible longterm impact on the subjects’ reasoning ability. It appears more likely that external outcomes relating to previous brain development have a strong impact on reasoning abilities, while failure to engage in active training will almost certainly result in reasoning decline.
+
+#### Ramsey County Neighborhood Home Values: A Spatial Analysis
+* This spatial analysis investigates home values across Ramsey County’s neighborhoods, contextualized by historical inequities in housing. Utilizing demographic and housing data from the tidy-census package and spatial econometric models, we examined the impact of various factors on home prices. The study identified that distance-based neighborhood structures significantly influenced home values. Results indicated persistent valuation disparities linked to past discriminatory practices, with certain
+areas, like Cathedral Hill, deviating from broader trends. Despite these insights, the study acknowledges the limitations inherent in using estimated census data and the potential exclusion of key non-spatial variables. The research underscores the need for continuous policy evaluation to address the long-term effects of historical housing discrimination.
+
+#### Macalester College Main Campus Energy Use: SARIMA Modeling & Forecasting
+
+*Reducing carbon emissions is of significant importance to post-secondary institutions. This case study of Macalester College in St. Paul, MN uses time series analysis to model and forecast energy use using the campus’ main meter. By using a b-spline to model trend, month and during semester status to model seasonality, and MA(1) to model remaining correlated residuals, we develop a time series model that forecasts relatively constant energy use in 2023 before a slight long-term increase in 2025, following
+seasonal patterns.
+
 ## Statistical Machine Learning (STAT 253)
 
 #### Modeling Platelet Levels and Stroke Events
